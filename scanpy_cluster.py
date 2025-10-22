@@ -7,6 +7,7 @@ This script implements a complete scRNA-seq analysis workflow including:
 - Normalization and feature selection
 - Dimensionality reduction (PCA, UMAP)
 - Leiden clustering at multiple resolutions
+- Differential expression analysis for each cluster
 - Cell type annotation using marker genes
 
 The workflow is based on the Scverse basic tutorial:
@@ -27,6 +28,10 @@ Example Usage:
     # Downsample to 10% of cells for quick testing
     python scanpy_cluster.py --input data.h5 --output-dir results/ \\
         --downsample 0.1 --save-plots
+
+    # Resume from existing analysis and add new annotations
+    python scanpy_cluster.py --input data.h5 --output-dir results/ \\
+        --markers updated_markers.csv --resume --save-plots
 
 Marker CSV Format:
     cell_type,gene
@@ -126,17 +131,22 @@ def downsample_cells(adata: ad.AnnData, fraction: float) -> ad.AnnData:
     return adata
 
 
-def calculate_qc_metrics(adata: ad.AnnData) -> ad.AnnData:
+def calculate_qc_metrics(adata: ad.AnnData, resume: bool = False) -> ad.AnnData:
     """
     Calculate quality control metrics including mitochondrial, ribosomal,
     and hemoglobin gene percentages.
     
     Args:
         adata: AnnData object
+        resume: If True, skip if QC metrics already exist
         
     Returns:
         AnnData object with QC metrics added
     """
+    if resume and "pct_counts_mt" in adata.obs.columns:
+        logging.info("QC metrics already calculated (resuming)")
+        return adata
+    
     logging.info("Calculating QC metrics")
     
     # Identify mitochondrial genes (MT- for human, Mt- for mouse)
@@ -197,16 +207,21 @@ def filter_cells_and_genes(
 
 
 
-def normalize_and_log(adata: ad.AnnData) -> ad.AnnData:
+def normalize_and_log(adata: ad.AnnData, resume: bool = False) -> ad.AnnData:
     """
     Normalize to median total counts and apply log transformation.
     
     Args:
         adata: AnnData object
+        resume: If True, skip if normalization already done
         
     Returns:
         Normalized AnnData object
     """
+    if resume and "counts" in adata.layers:
+        logging.info("Normalization already done (resuming)")
+        return adata
+    
     logging.info("Normalizing and log-transforming data")
     
     # Save raw counts in layers
@@ -222,17 +237,22 @@ def normalize_and_log(adata: ad.AnnData) -> ad.AnnData:
     return adata
 
 
-def select_variable_genes(adata: ad.AnnData, n_top_genes: int = 2000) -> ad.AnnData:
+def select_variable_genes(adata: ad.AnnData, n_top_genes: int = 2000, resume: bool = False) -> ad.AnnData:
     """
     Select highly variable genes for downstream analysis.
     
     Args:
         adata: AnnData object
         n_top_genes: Number of highly variable genes to select
+        resume: If True, skip if highly variable genes already computed
         
     Returns:
         AnnData object with highly variable genes annotated
     """
+    if resume and "highly_variable" in adata.var.columns:
+        logging.info(f"Highly variable genes already selected (resuming)")
+        return adata
+    
     logging.info(f"Selecting {n_top_genes} highly variable genes")
     
     # Use batch_key if available for batch-aware feature selection
@@ -250,32 +270,42 @@ def select_variable_genes(adata: ad.AnnData, n_top_genes: int = 2000) -> ad.AnnD
     return adata
 
 
-def run_pca(adata: ad.AnnData) -> ad.AnnData:
+def run_pca(adata: ad.AnnData, resume: bool = False) -> ad.AnnData:
     """
     Perform PCA dimensionality reduction.
     
     Args:
         adata: AnnData object
+        resume: If True, skip if PCA already computed
         
     Returns:
         AnnData object with PCA computed
     """
+    if resume and "X_pca" in adata.obsm:
+        logging.info("PCA already computed (resuming)")
+        return adata
+    
     logging.info("Running PCA")
     sc.tl.pca(adata)
     logging.info("PCA complete")
     return adata
 
 
-def compute_neighbors_and_umap(adata: ad.AnnData) -> ad.AnnData:
+def compute_neighbors_and_umap(adata: ad.AnnData, resume: bool = False) -> ad.AnnData:
     """
     Compute neighborhood graph and UMAP embedding.
     
     Args:
         adata: AnnData object
+        resume: If True, skip if neighbors and UMAP already computed
         
     Returns:
         AnnData object with neighbors and UMAP computed
     """
+    if resume and "X_umap" in adata.obsm:
+        logging.info("Neighbors and UMAP already computed (resuming)")
+        return adata
+    
     logging.info("Computing neighborhood graph")
     sc.pp.neighbors(adata)
     
@@ -289,7 +319,8 @@ def compute_neighbors_and_umap(adata: ad.AnnData) -> ad.AnnData:
 def cluster_leiden(
     adata: ad.AnnData,
     resolution: float,
-    key_added: str = "leiden"
+    key_added: str = "leiden",
+    resume: bool = False
 ) -> ad.AnnData:
     """
     Perform Leiden clustering at specified resolution.
@@ -298,10 +329,16 @@ def cluster_leiden(
         adata: AnnData object
         resolution: Clustering resolution parameter
         key_added: Key name for storing clustering results in adata.obs
+        resume: If True, skip if clustering already exists
         
     Returns:
         AnnData object with clustering results added
     """
+    if resume and key_added in adata.obs.columns:
+        n_clusters = adata.obs[key_added].nunique()
+        logging.info(f"Leiden clustering (resolution={resolution}) already exists with {n_clusters} clusters (resuming)")
+        return adata
+    
     logging.info(f"Running Leiden clustering (resolution={resolution})")
     
     sc.tl.leiden(
@@ -349,7 +386,8 @@ def annotate_with_markers(
     adata: ad.AnnData,
     markers: Dict[str, List[str]],
     cluster_key: str = "leiden",
-    annotation_key: str = "cell_type"
+    annotation_key: str = "cell_type",
+    resume: bool = False
 ) -> ad.AnnData:
     """
     Annotate clusters with cell types based on marker gene expression using
@@ -363,10 +401,15 @@ def annotate_with_markers(
         markers: Dictionary mapping cell type to list of marker genes
         cluster_key: Key in adata.obs containing cluster assignments
         annotation_key: Key name for storing cell type annotations
+        resume: If True, skip if annotation already exists
         
     Returns:
         AnnData object with cell type annotations added
     """
+    if resume and annotation_key in adata.obs.columns:
+        logging.info(f"Cell type annotation already exists (resuming)")
+        return adata
+    
     logging.info(f"Annotating cell types using decoupler MLM (cluster_key={cluster_key})")
     
     # Check which marker genes are present
@@ -431,6 +474,88 @@ def annotate_with_markers(
         logging.info(f"  {cell_type}: {count} cells")
     
     return adata
+
+
+def create_enrichment_dotplot(
+    adata: ad.AnnData,
+    cluster_key: str,
+    output_path: Path
+) -> None:
+    """
+    Create a dotplot showing MLM enrichment scores per cluster for each cell type.
+    
+    Args:
+        adata: AnnData object with MLM scores in obsm
+        cluster_key: Key in adata.obs containing cluster assignments
+        output_path: Path to save the plot
+    """
+    if "score_mlm" not in adata.obsm:
+        logging.warning("MLM scores not found in adata.obsm, skipping enrichment dotplot")
+        return
+    
+    try:
+        # Extract MLM scores directly from obsm
+        mlm_scores = adata.obsm["score_mlm"]
+        
+        # Get cell types (column names from MLM scores)
+        if hasattr(mlm_scores, 'dtype') and hasattr(mlm_scores.dtype, 'names'):
+            # Structured array
+            cell_types = list(mlm_scores.dtype.names)
+            score_matrix = np.column_stack([mlm_scores[ct] for ct in cell_types])
+        else:
+            # Regular array - need to get cell types from decoupler result
+            acts = dc.pp.get_obsm(adata, "score_mlm")
+            cell_types = acts.var_names.tolist()
+            score_matrix = mlm_scores
+        
+        # Create DataFrame with scores
+        scores_df = pd.DataFrame(
+            score_matrix,
+            index=adata.obs_names,
+            columns=cell_types
+        )
+        
+        # Add cluster information
+        scores_df[cluster_key] = adata.obs[cluster_key].values
+        
+        # Calculate mean score per cluster
+        cluster_means = scores_df.groupby(cluster_key).mean()
+        
+        # Ensure all values are numeric
+        cluster_means = cluster_means.astype(float)
+        
+        # Create heatmap
+        import seaborn as sns
+        fig, ax = plt.subplots(figsize=(max(12, len(cell_types) * 0.6), max(6, len(cluster_means) * 0.4)))
+        
+        sns.heatmap(
+            cluster_means, 
+            cmap="RdBu_r", 
+            center=0,
+            cbar_kws={'label': 'Mean MLM Enrichment Score'},
+            linewidths=0.5, 
+            linecolor='lightgray',
+            ax=ax,
+            robust=True
+        )
+        
+        ax.set_xlabel("Cell Type", fontsize=12)
+        ax.set_ylabel("Cluster", fontsize=12)
+        ax.set_title("Cell Type Enrichment Scores by Cluster", fontsize=14)
+        
+        # Rotate x labels for better readability
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        
+        plt.tight_layout()
+        plt.savefig(output_path, bbox_inches="tight", dpi=150)
+        plt.close()
+        logging.info(f"  Saved enrichment heatmap to {output_path}")
+        
+    except Exception as e:
+        logging.warning(f"  Could not create enrichment dotplot: {e}")
+        import traceback
+        logging.debug(traceback.format_exc())
 
 
 def save_plots(
@@ -560,8 +685,137 @@ def save_plots(
                     logging.warning(f"  No marker genes found in dataset for dotplot")
             except Exception as e:
                 logging.warning(f"  Could not generate marker dotplot: {e}")
+        
+        # Enrichment score heatmap if annotation was done
+        if annotation_key in adata.obs.columns and "score_mlm" in adata.obsm:
+            enrichment_path = plots_dir / f"enrichment_scores_res{res_str}.png"
+            create_enrichment_dotplot(adata, cluster_key, enrichment_path)
+        
+        # Differential expression dotplot
+        rank_key = f"rank_genes_{cluster_key}"
+        if rank_key in adata.uns:
+            try:
+                # Create dotplot of top differentially expressed genes
+                sc.pl.rank_genes_groups_dotplot(
+                    adata,
+                    n_genes=5,  # Top 5 genes per cluster
+                    key=rank_key,
+                    groupby=cluster_key,
+                    show=False,
+                    dendrogram=False
+                )
+                plt.savefig(plots_dir / f"deg_dotplot_res{res_str}.png", bbox_inches="tight", dpi=150)
+                plt.close()
+                logging.info(f"  Saved differential expression dotplot resolution {resolution}")
+            except Exception as e:
+                logging.warning(f"  Could not generate differential expression dotplot: {e}")
+            
+            # Also create a heatmap of top genes
+            try:
+                sc.pl.rank_genes_groups_heatmap(
+                    adata,
+                    n_genes=10,  # Top 10 genes per cluster
+                    key=rank_key,
+                    groupby=cluster_key,
+                    show=False,
+                    show_gene_labels=True
+                )
+                plt.savefig(plots_dir / f"deg_heatmap_res{res_str}.png", bbox_inches="tight", dpi=150)
+                plt.close()
+                logging.info(f"  Saved differential expression heatmap resolution {resolution}")
+            except Exception as e:
+                logging.warning(f"  Could not generate differential expression heatmap: {e}")
     
     logging.info(f"All plots saved to {plots_dir}")
+
+
+def run_differential_expression(
+    adata: ad.AnnData,
+    cluster_key: str,
+    method: str = "wilcoxon",
+    resume: bool = False
+) -> ad.AnnData:
+    """
+    Run differential expression analysis to find marker genes for each cluster.
+    
+    Args:
+        adata: AnnData object
+        cluster_key: Key in adata.obs containing cluster assignments
+        method: Statistical test to use (default: wilcoxon)
+        resume: If True, skip if differential expression already computed
+        
+    Returns:
+        AnnData object with differential expression results added
+    """
+    rank_key = f"rank_genes_{cluster_key}"
+    
+    if resume and "rank_genes_groups" in adata.uns and adata.uns.get("rank_genes_groups_key") == rank_key:
+        logging.info(f"Differential expression already computed for {cluster_key} (resuming)")
+        return adata
+    
+    logging.info(f"Running differential expression analysis for {cluster_key}")
+    
+    # Run rank_genes_groups
+    sc.tl.rank_genes_groups(
+        adata,
+        groupby=cluster_key,
+        method=method,
+        use_raw=False,  # Use normalized data in .X
+        key_added=rank_key,
+        layer=None
+    )
+    
+    # Store which key was used
+    adata.uns["rank_genes_groups_key"] = rank_key
+    
+    n_clusters = adata.obs[cluster_key].nunique()
+    logging.info(f"  Differential expression completed for {n_clusters} clusters")
+    
+    return adata
+
+
+def save_differential_expression_results(
+    adata: ad.AnnData,
+    cluster_key: str,
+    output_dir: Path,
+    n_genes: int = 100
+) -> None:
+    """
+    Save differential expression results to CSV files.
+    
+    Args:
+        adata: AnnData object with differential expression results
+        cluster_key: Key in adata.obs containing cluster assignments
+        output_dir: Directory to save output files
+        n_genes: Number of top genes to save per cluster
+    """
+    rank_key = f"rank_genes_{cluster_key}"
+    
+    if rank_key not in adata.uns:
+        logging.warning(f"  No differential expression results found for {cluster_key}")
+        return
+    
+    logging.info(f"  Saving differential expression results for {cluster_key}")
+    
+    # Get the differential expression results as a DataFrame
+    result = sc.get.rank_genes_groups_df(adata, group=None, key=rank_key)
+    
+    # Save all results
+    de_dir = output_dir / "differential_expression"
+    de_dir.mkdir(exist_ok=True)
+    
+    res_str = cluster_key.replace("leiden_res", "")
+    
+    # Save complete results
+    all_results_path = de_dir / f"deg_all_clusters_res{res_str}.csv"
+    result.to_csv(all_results_path, index=False)
+    logging.info(f"    Saved all DE genes to {all_results_path}")
+    
+    # Save top N genes per cluster
+    top_results_path = de_dir / f"deg_top{n_genes}_per_cluster_res{res_str}.csv"
+    top_result = result.groupby('group').head(n_genes)
+    top_result.to_csv(top_results_path, index=False)
+    logging.info(f"    Saved top {n_genes} DE genes per cluster to {top_results_path}")
 
 
 def save_results(
@@ -601,6 +855,9 @@ def save_results(
             csv_path = output_dir / f"cell_annotations_res{res_str}.csv"
             df.to_csv(csv_path, index=False)
             logging.info(f"  Saved annotations (resolution {resolution}) to {csv_path}")
+        
+        # Save differential expression results
+        save_differential_expression_results(adata, cluster_key, output_dir)
     
     logging.info("Results saved successfully")
 
@@ -635,6 +892,7 @@ Example usage:
   %(prog)s --input data.h5 --output-dir results/ --markers markers.csv --save-plots
   %(prog)s --input data.h5 --output-dir results/ --leiden-resolution 0.2,0.5,1.0
   %(prog)s --input data.h5 --output-dir results/ --downsample 0.1 --save-plots
+  %(prog)s --input data.h5 --output-dir results/ --markers new_markers.csv --resume
         """
     )
     
@@ -690,6 +948,11 @@ Example usage:
         default=1.0,
         help="Fraction of cells to keep (0-1, default: 1.0 = no downsampling)"
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from existing analysis, skip already computed steps"
+    )
     
     args = parser.parse_args()
     
@@ -714,30 +977,42 @@ Example usage:
     start_time = time.time()
     
     try:
-        # Load data
-        adata = load_data(args.input)
+        # Load data - check for existing processed file if resuming
+        processed_path = output_dir / "processed_data.h5ad"
+        if args.resume and processed_path.exists():
+            logging.info(f"Resuming from existing file: {processed_path}")
+            adata = ad.read_h5ad(processed_path)
+            logging.info(f"Loaded data: {adata.n_obs} cells × {adata.n_vars} genes")
+        else:
+            adata = load_data(args.input)
         
         # Downsample if requested
         if args.downsample < 1.0:
             adata = downsample_cells(adata, args.downsample)
         
         # QC and filtering
-        adata = calculate_qc_metrics(adata)
+        adata = calculate_qc_metrics(adata, resume=args.resume)
         adata = filter_cells_and_genes(adata, args.min_genes, args.min_cells)
         
         # Normalization and feature selection
-        adata = normalize_and_log(adata)
-        adata = select_variable_genes(adata, args.n_top_genes)
+        adata = normalize_and_log(adata, resume=args.resume)
+        adata = select_variable_genes(adata, args.n_top_genes, resume=args.resume)
         
         # Dimensionality reduction
-        adata = run_pca(adata)
-        adata = compute_neighbors_and_umap(adata)
+        adata = run_pca(adata, resume=args.resume)
+        adata = compute_neighbors_and_umap(adata, resume=args.resume)
         
         # Clustering at multiple resolutions
         for resolution in resolutions:
             res_str = str(resolution).replace(".", "p")
             cluster_key = f"leiden_res{res_str}"
-            adata = cluster_leiden(adata, resolution, key_added=cluster_key)
+            adata = cluster_leiden(adata, resolution, key_added=cluster_key, resume=args.resume)
+        
+        # Run differential expression analysis for each resolution
+        for resolution in resolutions:
+            res_str = str(resolution).replace(".", "p")
+            cluster_key = f"leiden_res{res_str}"
+            adata = run_differential_expression(adata, cluster_key, resume=args.resume)
         
         # Cell type annotation if markers provided
         markers = None
@@ -752,7 +1027,8 @@ Example usage:
                     adata,
                     markers,
                     cluster_key=cluster_key,
-                    annotation_key=annotation_key
+                    annotation_key=annotation_key,
+                    resume=args.resume
                 )
         
         # Save results

@@ -67,6 +67,19 @@ python scanpy_cluster.py \
   --save-plots
 ```
 
+### Resume from Existing Analysis
+
+Resume from a previously saved analysis, skipping already-computed steps:
+
+```bash
+python scanpy_cluster.py \
+  --input data.h5 \
+  --output-dir results/ \
+  --markers new_markers.csv \
+  --resume \
+  --save-plots
+```
+
 ### All Options
 
 ```bash
@@ -96,6 +109,7 @@ python scanpy_cluster.py \
 - `--n-top-genes`: Number of highly variable genes (default: 2000)
 - `--leiden-resolution`: Clustering resolution(s), comma-separated (default: 0.5)
 - `--downsample`: Fraction of cells to keep for analysis, 0-1 (default: 1.0 = no downsampling)
+- `--resume`: Resume from existing analysis, skip already-computed steps
 
 ## Marker Gene CSV Format
 
@@ -130,6 +144,7 @@ The tool creates the following outputs in the specified output directory:
 - `plots/umap_leiden_res{resolution}.png`: UMAP colored by clusters
 - `plots/umap_celltype_res{resolution}.png`: UMAP colored by cell type
 - `plots/marker_dotplot_res{resolution}.png`: Marker gene expression dotplot
+- `plots/enrichment_scores_res{resolution}.png`: MLM enrichment score heatmap per cluster
 
 ## Example Workflow
 
@@ -176,6 +191,12 @@ The tool creates the following outputs in the specified output directory:
 - Detailed progress logging with timestamps
 - Summary statistics at each step
 - Error handling with informative messages
+
+### Resume Capability
+- Can resume from existing `processed_data.h5ad` file
+- Skips already-computed steps (QC, normalization, PCA, UMAP, clustering, annotation)
+- Useful for adding new clustering resolutions or annotations
+- Saves time when experimenting with parameters
 
 ## Requirements
 
