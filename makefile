@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev build test test-unit test-functional test-coverage clean clean-all lint format create-test-data
+.PHONY: help venv install install-dev build test test-unit test-functional test-coverage clean clean-all lint format create-test-data run
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make format            - Format code with black"
 	@echo "  make clean             - Remove build artifacts and caches"
 	@echo "  make clean-all         - Remove build artifacts, caches, and venv"
+	@echo "  make run ROOT=/path    - Run full pipeline using config.toml in ROOT directory"
 
 # Create virtual environment
 venv:
@@ -108,3 +109,43 @@ dev-setup: venv install-dev create-test-data
 # Quick test during development
 quick-test: test-unit
 	@echo "Quick unit tests passed!"
+
+# Run full pipeline using config file
+run:
+	@if [ -z "$(ROOT)" ]; then \
+		echo "Error: ROOT must be specified. Usage: make run ROOT=/path/to/directory"; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(ROOT)" ]; then \
+		echo "Error: Directory $(ROOT) does not exist"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(ROOT)/config.toml" ]; then \
+		echo "Error: config.toml not found in $(ROOT)"; \
+		exit 1; \
+	fi
+	@echo "Running pipeline with config: config.toml"
+	@echo "Working directory: $(ROOT)"
+	@echo "=========================================="
+	@cd "$(ROOT)" && \
+	echo "Step 1: Concatenate samples" && \
+	xenium_process concat --config "config.toml" || exit 1
+	@cd "$(ROOT)" && \
+	echo "" && \
+	echo "Step 2: Normalize data" && \
+	xenium_process normalize --config "config.toml" || exit 1
+	@cd "$(ROOT)" && \
+	echo "" && \
+	echo "Step 3: Cluster cells" && \
+	xenium_process cluster --config "config.toml" || exit 1
+	@cd "$(ROOT)" && \
+	echo "" && \
+	echo "Step 4: Annotate cell types" && \
+	xenium_process annotate --config "config.toml" || exit 1
+	@cd "$(ROOT)" && \
+	echo "" && \
+	echo "Step 5: Differential expression analysis" && \
+	xenium_process differential --config "config.toml" || exit 1
+	@echo ""
+	@echo "=========================================="
+	@echo "Pipeline completed successfully!"

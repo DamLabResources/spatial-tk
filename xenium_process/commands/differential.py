@@ -33,17 +33,17 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument(
         '--input',
-        required=True,
+        required=False,
         help='Path to input .zarr file with annotations'
     )
     parser.add_argument(
         '--output-dir',
-        required=True,
+        required=False,
         help='Directory to save differential analysis results'
     )
     parser.add_argument(
         '--groupby',
-        required=True,
+        required=False,
         help='Column in obs to group by for differential analysis (e.g., "status", "cell_type", or "leiden_res0p5")'
     )
     parser.add_argument(
@@ -275,6 +275,17 @@ def main(args: argparse.Namespace) -> None:
         except Exception as e:
             logging.error(f"Error loading config file: {e}")
             sys.exit(1)
+    
+    # Validate required arguments (after config merge)
+    if not args.input:
+        logging.error("--input is required (provide via CLI or config file)")
+        sys.exit(1)
+    if not args.output_dir:
+        logging.error("--output-dir is required (provide via CLI or config file)")
+        sys.exit(1)
+    if not args.groupby:
+        logging.error("--groupby is required (provide via CLI or config file)")
+        sys.exit(1)
     
     logging.info("="*60)
     logging.info("Xenium Process: Differential Analysis")

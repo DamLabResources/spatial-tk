@@ -27,7 +27,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument(
         '--input',
-        required=True,
+        required=False,
         help='Path to input normalized .zarr file'
     )
     parser.add_argument(
@@ -74,6 +74,11 @@ def main(args: argparse.Namespace) -> None:
         except Exception as e:
             logging.error(f"Error loading config file: {e}")
             sys.exit(1)
+    
+    # Validate required arguments (after config merge)
+    if not args.input:
+        logging.error("--input is required (provide via CLI or config file)")
+        sys.exit(1)
     
     logging.info("="*60)
     logging.info("Xenium Process: Clustering Analysis")
