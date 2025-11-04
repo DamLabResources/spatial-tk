@@ -12,6 +12,7 @@ from xenium_process.core.data_io import load_existing_spatial_data, save_spatial
 from xenium_process.core import preprocessing
 from xenium_process.core import plotting
 from xenium_process.utils.helpers import get_table, set_table, get_output_path, prepare_spatial_data_for_save
+from xenium_process.utils.config import load_config, merge_config_with_args
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -58,6 +59,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         action='store_true',
         help='Generate and save QC plots'
     )
+    parser.add_argument(
+        '--config',
+        help='Path to TOML configuration file (optional)'
+    )
 
 
 def main(args: argparse.Namespace) -> None:
@@ -67,6 +72,18 @@ def main(args: argparse.Namespace) -> None:
     Args:
         args: Parsed command-line arguments
     """
+    # Load and merge config if provided
+    if args.config:
+        try:
+            config_dict = load_config(args.config)
+            # Create a temporary parser to get defaults
+            temp_parser = argparse.ArgumentParser()
+            add_arguments(temp_parser)
+            args = merge_config_with_args('normalize', config_dict, args, temp_parser)
+        except Exception as e:
+            logging.error(f"Error loading config file: {e}")
+            sys.exit(1)
+    
     logging.info("="*60)
     logging.info("Xenium Process: Normalize and Preprocess")
     logging.info("="*60)

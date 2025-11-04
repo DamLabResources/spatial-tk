@@ -24,7 +24,8 @@ def test_annotate_command_passes_tmin_default():
         calculate_ulm=False,
         panglao_min_sensitivity=0.5,
         tmin=2,  # Default value
-        save_plots=False
+        save_plots=False,
+        config=None  # No config file
     )
     
     # Mock all the functions that would be called
@@ -79,7 +80,8 @@ def test_annotate_command_passes_custom_tmin():
         calculate_ulm=False,
         panglao_min_sensitivity=0.5,
         tmin=1,  # Custom value for small marker sets
-        save_plots=False
+        save_plots=False,
+        config=None  # No config file
     )
     
     # Mock all the functions
@@ -131,7 +133,8 @@ def test_annotate_command_without_markers_no_tmin_error():
         cluster_key="leiden_res0p5",
         calculate_ulm=False,
         panglao_min_sensitivity=0.5,
-        save_plots=False
+        save_plots=False,
+        config=None  # No config file
     )
     
     # Mock all the functions

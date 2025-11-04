@@ -9,6 +9,7 @@ A comprehensive modular Python toolkit for Xenium spatial transcriptomics analys
 - **Multiple Resolutions**: Support for multi-resolution clustering analysis
 - **Rich Annotations**: Marker-based and ULM enrichment-based cell type annotation
 - **Flexible Differential Analysis**: Compare groups or find cluster markers
+- **Configuration Files**: TOML config files for reproducible pipelines
 - **Comprehensive Testing**: Unit and functional tests ensure reliability
 
 ## Installation
@@ -37,7 +38,76 @@ The package requires Python ≥3.9 and includes dependencies for:
 
 See `pyproject.toml` for complete dependency list.
 
-## Quick Start
+## Configuration Files
+
+All commands support TOML configuration files for reproducible pipelines. Each command has its own section in the config file, and CLI arguments override config values when both are provided.
+
+### Basic Usage
+
+```bash
+# Use a config file
+xenium_process concat --config config.toml --input samples.csv --output merged.zarr
+xenium_process normalize --config config.toml --input merged.zarr --inplace
+```
+
+### Config File Format
+
+Create a `config.toml` file with sections for each command:
+
+```toml
+[concat]
+input = "samples.csv"
+output = "merged.zarr"
+downsample = 1.0
+
+[normalize]
+input = "merged.zarr"
+inplace = true
+min_genes = 100
+min_cells = 3
+n_top_genes = 2000
+save_plots = false
+
+[cluster]
+input = "merged.zarr"
+inplace = true
+leiden_resolution = "0.2,0.5,1.0"
+save_plots = true
+
+[annotate]
+input = "merged.zarr"
+inplace = true
+markers = "markers.csv"
+calculate_ulm = true
+panglao_min_sensitivity = 0.5
+tmin = 2
+save_plots = true
+
+[differential]
+input = "merged.zarr"
+output_dir = "results/"
+groupby = "leiden_res0p5"
+method = "wilcoxon"
+n_genes = 100
+save_plots = false
+```
+
+### Config Key Naming
+
+Config keys use underscores (e.g., `min_genes`, `n_top_genes`), which correspond to CLI arguments with hyphens (`--min-genes`, `--n-top-genes`). The config system automatically handles this conversion.
+
+### CLI Arguments Override Config
+
+When both a config file and CLI arguments are provided, CLI arguments take precedence:
+
+```bash
+# Config specifies downsample = 0.5, but CLI overrides it to 0.8
+xenium_process concat --config config.toml --input samples.csv --output merged.zarr --downsample 0.8
+```
+
+### Example Config File
+
+See `example_config.toml` in the repository root for a complete example with all available options documented.
 
 ```bash
 # 1. Concatenate multiple samples
@@ -73,6 +143,7 @@ xenium_process concat --input samples.csv --output merged.zarr --downsample 0.1
 - `--input`: Path to CSV file with columns: `sample`, `path`, [optional metadata]
 - `--output`: Path to output .zarr file
 - `--downsample`: Fraction of cells to keep (0-1, default: 1.0)
+- `--config`: Path to TOML configuration file (optional)
 
 **CSV Format:**
 ```csv
@@ -108,6 +179,7 @@ xenium_process normalize --input data.zarr --inplace \
 - `--min-cells`: Minimum cells per gene (default: 3)
 - `--n-top-genes`: Number of highly variable genes (default: 2000)
 - `--save-plots`: Generate QC plots
+- `--config`: Path to TOML configuration file (optional)
 
 ### `xenium_process cluster`
 
@@ -129,6 +201,7 @@ xenium_process cluster --input data.zarr --inplace \
 - `--inplace`: Modify input file in place
 - `--leiden-resolution`: Clustering resolution(s), comma-separated (default: 0.5)
 - `--save-plots`: Generate UMAP plots
+- `--config`: Path to TOML configuration file (optional)
 
 ### `xenium_process annotate`
 
@@ -158,7 +231,9 @@ xenium_process annotate --input data.zarr --inplace \
 - `--cluster-key`: Specific cluster column to annotate (default: all leiden_res*)
 - `--calculate-ulm`: Calculate ULM enrichment scores for pathways/TFs
 - `--panglao-min-sensitivity`: Min sensitivity for PanglaoDB markers (default: 0.5)
+- `--tmin`: Minimum marker genes per cell type (default: 2)
 - `--save-plots`: Generate annotation plots
+- `--config`: Path to TOML configuration file (optional)
 
 **ULM Resources:**
 - **hallmark**: MSigDB Hallmark gene sets
@@ -215,8 +290,21 @@ xenium_process differential \
 - `--layer`: Layer to use for expression (default: None uses .X)
 - `--n-genes`: Number of top genes to save (default: 100)
 - `--save-plots`: Generate differential analysis plots
+- `--config`: Path to TOML configuration file (optional)
 
 ## Example Workflows
+
+### Full Pipeline with Config File
+
+```bash
+# Create config.toml with your settings
+# Then run pipeline with config
+xenium_process concat --config config.toml --input samples.csv --output data.zarr
+xenium_process normalize --config config.toml --input data.zarr --inplace
+xenium_process cluster --config config.toml --input data.zarr --inplace
+xenium_process annotate --config config.toml --input data.zarr --inplace
+xenium_process differential --config config.toml --input data.zarr --output-dir results/
+```
 
 ### Full Pipeline (In-place to Save Space)
 

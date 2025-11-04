@@ -1,0 +1,91 @@
+# Example TOML configuration file for xenium_process pipeline
+#
+# Each command has its own section. CLI arguments override config values.
+# Use this file to make your pipelines reproducible across runs.
+#
+# Usage:
+#   xenium_process concat --config example_config.toml --input samples.csv
+#   xenium_process normalize --config example_config.toml --input merged.zarr
+#   etc.
+
+[concat]
+# Path to CSV file listing samples (columns: sample, path, [metadata...])
+input = "samples.csv"
+# Path to output concatenated .zarr file
+output = "merged.zarr"
+# Fraction of cells to keep (0-1, default: 1.0 = no downsampling)
+downsample = 1.0
+
+[normalize]
+# Path to input .zarr file
+input = "merged.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = false
+# Path to output .zarr file (required unless inplace = true)
+output = "normalized.zarr"
+# Minimum number of genes expressed per cell
+min_genes = 100
+# Minimum number of cells expressing a gene
+min_cells = 3
+# Number of highly variable genes to select
+n_top_genes = 2000
+# Generate and save QC plots
+save_plots = false
+
+[cluster]
+# Path to input normalized .zarr file
+input = "normalized.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = false
+# Path to output .zarr file (required unless inplace = true)
+output = "clustered.zarr"
+# Leiden clustering resolution(s), comma-separated for multiple resolutions
+leiden_resolution = "0.2,0.5,1.0"
+# Generate and save UMAP plots
+save_plots = true
+
+[annotate]
+# Path to input clustered .zarr file
+input = "clustered.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = false
+# Path to output .zarr file (required unless inplace = true)
+output = "annotated.zarr"
+# Path to CSV file with marker genes (columns: cell_type, gene)
+markers = "markers.csv"
+# Cluster column key to use for annotation (e.g., "leiden_res0p5")
+# If null, will use all leiden_res* columns found
+cluster_key = null
+# Pre-calculate ULM enrichment scores for pathway/TF resources
+calculate_ulm = true
+# Minimum sensitivity for PanglaoDB markers in ULM (default: 0.5)
+panglao_min_sensitivity = 0.5
+# Minimum number of marker genes per cell type for ULM annotation
+tmin = 2
+# Generate and save annotation plots
+save_plots = true
+
+[differential]
+# Path to input .zarr file with annotations
+input = "annotated.zarr"
+# Directory to save differential analysis results
+output_dir = "results/"
+# Column in obs to group by for differential analysis
+# (e.g., "status", "cell_type", or "leiden_res0p5")
+groupby = "leiden_res0p5"
+# Comma-separated list of exactly 2 groups to compare (Mode A)
+# E.g., "HIV,NEG". If null, finds markers for all groups (Mode B)
+compare_groups = null
+# Optional obsm layer to use for enrichment-based differential analysis
+# (e.g., "score_ulm_PanglaoDB")
+obsm_layer = null
+# Statistical test method for gene expression DE
+# Options: "wilcoxon", "t-test", "logreg"
+method = "wilcoxon"
+# Layer to use for gene expression (null uses .X)
+layer = null
+# Generate and save differential analysis plots
+save_plots = false
+# Number of top genes to save per group
+n_genes = 100
+

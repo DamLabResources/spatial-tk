@@ -16,6 +16,7 @@ from xenium_process.core.data_io import (
 )
 from xenium_process.core.preprocessing import downsample_cells
 from xenium_process.utils.helpers import get_table
+from xenium_process.utils.config import load_config, merge_config_with_args
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -41,6 +42,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         default=1.0,
         help='Fraction of cells to keep (0-1, default: 1.0 = no downsampling)'
     )
+    parser.add_argument(
+        '--config',
+        help='Path to TOML configuration file (optional)'
+    )
 
 
 def main(args: argparse.Namespace) -> None:
@@ -50,6 +55,18 @@ def main(args: argparse.Namespace) -> None:
     Args:
         args: Parsed command-line arguments
     """
+    # Load and merge config if provided
+    if args.config:
+        try:
+            config_dict = load_config(args.config)
+            # Create a temporary parser to get defaults
+            temp_parser = argparse.ArgumentParser()
+            add_arguments(temp_parser)
+            args = merge_config_with_args('concat', config_dict, args, temp_parser)
+        except Exception as e:
+            logging.error(f"Error loading config file: {e}")
+            sys.exit(1)
+    
     logging.info("="*60)
     logging.info("Xenium Process: Concatenate Datasets")
     logging.info("="*60)
