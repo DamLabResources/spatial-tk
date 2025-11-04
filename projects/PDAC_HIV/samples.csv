@@ -1,0 +1,5 @@
+sample,path,status,location
+Drexel-Pos,/deepdata/share/hope-lab/xenium_datasets/output-XETG00217__0041105__HIV-NEG-NS14-916__20251002__151302.zarr,HIV,Drexel
+Drexel-Neg,/deepdata/share/hope-lab/xenium_datasets/output-XETG00217__0041105__HIV-POS-DS14-6872__20251002__151303.zarr,NEG,Drexel
+OSU-Pos,/deepdata/share/hope-lab/xenium_datasets/output-XETG00217__0067798__s524206__20251002__151303.zarr,HIV,OSU
+OSU-Neg,/deepdata/share/hope-lab/xenium_datasets/output-XETG00217__0067798__s164820__20251002__151303.zarr,NEG,OSU

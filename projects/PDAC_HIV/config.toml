@@ -1,0 +1,77 @@
+# TOML configuration file for PDAC samples
+
+[concat]
+# Path to CSV file listing samples (columns: sample, path, [metadata...])
+input = "samples.csv"
+# Path to output concatenated .zarr file
+output = "data.zarr"
+# Fraction of cells to keep (0-1, default: 1.0 = no downsampling)
+downsample = 1.0
+
+[normalize]
+# Path to input .zarr file
+input = "data.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = true
+# Minimum number of genes expressed per cell
+min_genes = 100
+# Minimum number of cells expressing a gene
+min_cells = 3
+# Number of highly variable genes to select
+n_top_genes = 1000
+# Generate and save QC plots
+save_plots = true
+
+[cluster]
+# Path to input normalized .zarr file
+input = "data.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = true
+# Leiden clustering resolution(s), comma-separated for multiple resolutions
+leiden_resolution = "0.2,0.5,1.0"
+# Generate and save UMAP plots
+save_plots = true
+resume = true
+
+[annotate]
+# Path to input clustered .zarr file
+input = "data.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = true
+# Path to CSV file with marker genes (columns: cell_type, gene)
+markers = "markers.csv"
+
+# Pre-calculate ULM enrichment scores for pathway/TF resources
+calculate_ulm = true
+# Minimum sensitivity for PanglaoDB markers in ULM (default: 0.5)
+panglao_min_sensitivity = 0.5
+# Minimum number of marker genes per cell type for ULM annotation
+tmin = 2
+# Generate and save annotation plots
+save_plots = true
+resume = true
+
+#[differential]
+# Path to input .zarr file with annotations
+#input = "data.zarr"
+# Directory to save differential analysis results
+#output_dir = "results/"
+# Column in obs to group by for differential analysis
+# (e.g., "status", "cell_type", or "leiden_res0p5")
+#groupby = "leiden_res0p5"
+# Comma-separated list of exactly 2 groups to compare (Mode A)
+# E.g., "HIV,NEG". If null, finds markers for all groups (Mode B)
+#compare_groups = null
+# Optional obsm layer to use for enrichment-based differential analysis
+# (e.g., "score_ulm_PanglaoDB")
+#obsm_layer = null
+# Statistical test method for gene expression DE
+# Options: "wilcoxon", "t-test", "logreg"
+#method = "wilcoxon"
+# Layer to use for gene expression (null uses .X)
+#layer = null
+# Generate and save differential analysis plots
+#save_plots = false
+# Number of top genes to save per group
+#n_genes = 100
+
