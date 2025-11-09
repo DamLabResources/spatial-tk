@@ -8,7 +8,12 @@ import logging
 import sys
 from pathlib import Path
 
-from xenium_process.core.data_io import load_existing_spatial_data, save_spatial_data
+from xenium_process.core.data_io import (
+    load_existing_spatial_data, 
+    save_spatial_data,
+    load_table_only,
+    save_table_only
+)
 from xenium_process.core import clustering
 from xenium_process.core import plotting
 from xenium_process.utils.helpers import (
@@ -98,9 +103,14 @@ def main(args: argparse.Namespace) -> None:
         sys.exit(1)
     
     try:
-        # Load spatial data
-        sdata = load_existing_spatial_data(input_path)
-        adata = get_table(sdata)
+        sdata = None
+        if args.inplace:
+            # Load SpatialData but skip images
+            sdata = load_existing_spatial_data(input_path, load_images=False)
+            adata = get_table(sdata)
+        else:
+            # Load table only for processing, will reload SpatialData for saving
+            adata = load_table_only(input_path)
         
         if adata is None:
             raise ValueError("No expression table found in spatial data")
@@ -117,18 +127,20 @@ def main(args: argparse.Namespace) -> None:
             cluster_key = f"leiden_res{res_str}"
             adata = clustering.cluster_leiden(adata, resolution, key_added=cluster_key)
         
-        # Update the SpatialData table with processed AnnData
+        # Prepare for saving
         prepare_spatial_data_for_save(adata)
-        set_table(sdata, adata)
         
         # Save results
         if args.inplace:
+            # Save table directly without loading SpatialData
             logging.info(f"Saving results in place: {output_path}")
+            save_table_only(adata, output_path, overwrite=True)
         else:
+            # For non-inplace, load SpatialData (without images) and update table
+            set_table(sdata, adata)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             logging.info(f"Saving results to: {output_path}")
-        
-        save_spatial_data(sdata, output_path, overwrite=args.inplace)
+            save_spatial_data(sdata, output_path, overwrite=False)
         
         # Generate plots if requested
         if args.save_plots:

@@ -11,9 +11,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import anndata as ad
+import numpy as np
 import pandas as pd
 import spatialdata as sd
 
+# Try to import spatialdata_io for Xenium loading
+from spatialdata_io import xenium as xenium_io
 
 def load_sample_metadata(csv_path: str) -> pd.DataFrame:
     """
@@ -21,7 +24,7 @@ def load_sample_metadata(csv_path: str) -> pd.DataFrame:
     
     The CSV must contain at minimum:
     - sample: Sample name/identifier
-    - path: Path to .zarr file
+    - path: Path to .zarr file or raw Xenium dataset directory
     
     Additional columns (e.g., status, location) are preserved as metadata.
     
@@ -54,34 +57,247 @@ def load_sample_metadata(csv_path: str) -> pd.DataFrame:
     return df
 
 
-def load_spatial_datasets(sample_df: pd.DataFrame) -> List[Tuple[str, sd.SpatialData]]:
+def load_xenium_dataset(dataset_path: Path, sample_name: str) -> sd.SpatialData:
     """
-    Load Xenium spatial datasets from .zarr files.
+    Load raw Xenium dataset directory into SpatialData.
+    
+    Args:
+        dataset_path: Path to root Xenium output directory
+        sample_name: Sample name identifier
+        
+    Returns:
+        SpatialData object with images and expression data
+    """
+
+    if not dataset_path.exists():
+        raise FileNotFoundError(f"Xenium dataset directory not found: {dataset_path}")
+    
+    logging.info(f"    Loading raw Xenium dataset from {dataset_path}")
+    
+    try:
+        # Use spatialdata_io.xenium() to load the dataset
+        sdata = xenium_io(dataset_path)
+        
+        # Log images found
+        if hasattr(sdata, 'images') and sdata.images:
+            image_keys = list(sdata.images.keys())
+            logging.info(f"    Images loaded: {image_keys}")
+        else:
+            logging.warning(f"    No images found in Xenium dataset")
+        
+        return sdata
+        
+    except Exception as e:
+        logging.error(f"  Failed to load Xenium dataset: {e}")
+        raise
+
+
+def setup_squidpy_structure(sdata: sd.SpatialData, library_id: str) -> None:
+    """
+    Set up squidpy-compatible structure in AnnData.
+    
+    Creates adata.uns['spatial'][library_id] with images and scale factors,
+    and ensures coordinates are in obsm['spatial'].
+    
+    Args:
+        sdata: SpatialData object
+        library_id: Library/sample identifier (used as key in uns['spatial'])
+    """
+    from xenium_process.utils.helpers import get_table
+    
+    # Get AnnData table
+    adata = get_table(sdata)
+    if adata is None:
+        logging.warning(f"    No table found in SpatialData for {library_id}, skipping squidpy setup")
+        return
+    
+    # Initialize uns['spatial'] if it doesn't exist
+    if 'spatial' not in adata.uns:
+        adata.uns['spatial'] = {}
+    
+    # Create library entry
+    if library_id not in adata.uns['spatial']:
+        adata.uns['spatial'][library_id] = {}
+    
+    # Extract images from SpatialData
+    if hasattr(sdata, 'images') and sdata.images:
+        # Look for morphology_focus, morphology_mip, or first available image
+        image_keys = list(sdata.images.keys())
+        preferred_keys = ['morphology_focus', 'morphology_mip', 'morphology']
+        
+        image_key = None
+        for pref_key in preferred_keys:
+            if pref_key in image_keys:
+                image_key = pref_key
+                break
+        
+        if image_key is None and image_keys:
+            image_key = image_keys[0]
+            logging.info(f"    Using image key: {image_key}")
+        
+        if image_key:
+            try:
+                # Extract image data from SpatialData image element
+                image_element = sdata.images[image_key]
+                
+                # Convert to numpy array
+                if hasattr(image_element, 'values'):
+                    image_array = image_element.values
+                elif hasattr(image_element, 'data'):
+                    image_array = np.array(image_element.data)
+                else:
+                    image_array = np.array(image_element)
+                
+                # Store in squidpy format
+                adata.uns['spatial'][library_id]['images'] = {'hires': image_array}
+                logging.info(f"    Added image to uns['spatial'][{library_id}]['images']")
+                
+                # Try to extract scale factors from coordinate transformations
+                # For now, use default scale factor of 1.0
+                # TODO: Extract actual scale factors from SpatialData transformations
+                adata.uns['spatial'][library_id]['scalefactors'] = {
+                    'tissue_hires_scalef': 1.0,
+                    'spot_diameter_fullres': 1.0
+                }
+                
+            except Exception as e:
+                logging.warning(f"    Failed to extract image for {library_id}: {e}")
+    
+    # Ensure spatial coordinates are in obsm['spatial']
+    # Check if coordinates already exist (e.g., from Xenium loader)
+    if 'spatial' in adata.obsm:
+        logging.info(f"    Spatial coordinates already in obsm['spatial']")
+    elif 'X_spatial' in adata.obsm:
+        # Copy X_spatial to spatial
+        adata.obsm['spatial'] = adata.obsm['X_spatial']
+        logging.info(f"    Copied X_spatial to obsm['spatial']")
+    else:
+        # Try to extract coordinates from SpatialData
+        if 'instance_id' in adata.obs.columns and 'region' in adata.obs.columns:
+            # Extract coordinates from spatial elements
+            try:
+                coords_list = []
+                regions = adata.obs['region'].unique()
+                
+                for region in regions:
+                    region_mask = adata.obs['region'] == region
+                    region_indices = np.where(region_mask)[0]
+                    
+                    # Try to get coordinates from points or shapes
+                    coords = None
+                    if hasattr(sdata, 'points') and region in sdata.points:
+                        points = sdata.points[region]
+                        if hasattr(points, 'data'):
+                            if hasattr(points.data, 'x') and hasattr(points.data, 'y'):
+                                coords = np.column_stack([points.data.x.values, points.data.y.values])
+                    
+                    if coords is None and hasattr(sdata, 'shapes') and region in sdata.shapes:
+                        shapes = sdata.shapes[region]
+                        # Extract centroids from shapes
+                        try:
+                            if hasattr(shapes, 'geometry'):
+                                import geopandas as gpd
+                                if isinstance(shapes, gpd.GeoDataFrame):
+                                    coords = np.column_stack([
+                                        shapes.geometry.centroid.x.values,
+                                        shapes.geometry.centroid.y.values
+                                    ])
+                        except Exception:
+                            pass
+                    
+                    if coords is not None and len(coords) == len(region_indices):
+                        # Initialize coords_list if needed
+                        if len(coords_list) == 0:
+                            coords_list = [[0.0, 0.0]] * adata.n_obs
+                        # Assign coordinates to correct positions
+                        for idx, coord_idx in enumerate(region_indices):
+                            if coord_idx < len(coords_list):
+                                coords_list[coord_idx] = coords[idx]
+                
+                if coords_list and len(coords_list) == adata.n_obs:
+                    all_coords = np.array(coords_list)
+                    adata.obsm['spatial'] = all_coords
+                    logging.info(f"    Extracted spatial coordinates to obsm['spatial']")
+                else:
+                    logging.warning(f"    Could not extract coordinates: coords_list length mismatch")
+            except Exception as e:
+                logging.warning(f"    Could not extract coordinates: {e}")
+        else:
+            logging.warning(f"    Missing instance_id or region columns, cannot extract coordinates")
+
+
+def load_spatial_datasets(sample_df: pd.DataFrame, load_images: bool = True) -> List[Tuple[str, sd.SpatialData]]:
+    """
+    Load Xenium spatial datasets from .zarr files or raw Xenium directories.
     
     Args:
         sample_df: DataFrame with 'sample' and 'path' columns
+        load_images: If True, load images (needed for visualization). 
+                     If False, skip images to save memory (default: True)
         
     Returns:
         List of tuples (sample_name, SpatialData object)
     """
     logging.info("Loading spatial datasets")
+    if not load_images:
+        logging.info("  Image loading disabled (load_images=False)")
     
     spatial_data_list = []
     
     for idx, row in sample_df.iterrows():
         sample_name = row["sample"]
-        zarr_path = row["path"]
+        dataset_path = Path(row["path"])
         
-        logging.info(f"  Loading {sample_name} from {zarr_path}")
+        logging.info(f"  Loading {sample_name} from {dataset_path}")
         
         try:
-            sdata = sd.read_zarr(zarr_path)
+            # Check if path ends with .zarr
+            if str(dataset_path).endswith('.zarr'):
+                # Existing .zarr loading
+                sdata = sd.read_zarr(dataset_path)
+                # Remove images if not needed
+                if not load_images and hasattr(sdata, 'images') and sdata.images:
+                    logging.info(f"    Removing {len(sdata.images)} images from memory")
+                    sdata.images = {}
+            else:
+                # Raw Xenium dataset directory
+                # Note: xenium_io() loads images automatically, we'll remove them if not needed
+                sdata = load_xenium_dataset(dataset_path, sample_name)
+                # Remove images if not needed
+                if not load_images and hasattr(sdata, 'images') and sdata.images:
+                    logging.info(f"    Removing {len(sdata.images)} images from memory")
+                    sdata.images = {}
+                elif load_images and hasattr(sdata, 'images') and sdata.images:
+                    logging.info(f"    Images loaded: {list(sdata.images.keys())}")
+                else:
+                    logging.warning(f"    No images found in Xenium dataset")
+            
+            # Set up squidpy structure for both cases (only if images are loaded)
+            if load_images:
+                setup_squidpy_structure(sdata, sample_name)
+            else:
+                # Still set up coordinates, but skip images
+                from xenium_process.utils.helpers import get_table
+                adata = get_table(sdata)
+                if adata is not None:
+                    # Ensure coordinates are in obsm['spatial']
+                    if 'spatial' not in adata.obsm and 'X_spatial' in adata.obsm:
+                        adata.obsm['spatial'] = adata.obsm['X_spatial']
+                        logging.info(f"    Copied X_spatial to obsm['spatial']")
+            
+            # Update table back to SpatialData (in case it was modified)
+            from xenium_process.utils.helpers import get_table, set_table
+            table = get_table(sdata)
+            if table is not None:
+                set_table(sdata, table)
+            
             spatial_data_list.append((sample_name, sdata))
             
             # Log basic info about the dataset
-            if sdata.table is not None:
-                n_cells = sdata.table.n_obs
-                n_genes = sdata.table.n_vars
+            table = get_table(sdata)
+            if table is not None:
+                n_cells = table.n_obs
+                n_genes = table.n_vars
                 logging.info(f"    {n_cells} cells × {n_genes} genes")
             else:
                 logging.warning(f"    No expression table found in {sample_name}")
@@ -134,6 +350,13 @@ def concatenate_spatial_data(
             table.obs["sample"] = sample_name
             for col in metadata_cols:
                 table.obs[col] = sample_metadata[col]
+            
+            # Ensure uns['spatial'] structure is preserved
+            if 'spatial' not in table.uns:
+                table.uns['spatial'] = {}
+            if sample_name not in table.uns['spatial'] and hasattr(table, 'uns'):
+                # Try to get from original if it was set up
+                logging.info(f"  Preserving uns['spatial'] structure for {sample_name}")
         
         return sdata
     
@@ -154,6 +377,20 @@ def concatenate_spatial_data(
         table = get_table(concatenated_sdata)
         
         if table is not None:
+            # Preserve uns['spatial'] structure from individual samples
+            # Merge uns['spatial'] from all samples
+            if 'spatial' not in table.uns:
+                table.uns['spatial'] = {}
+            
+            # Collect uns['spatial'] entries from each sample
+            for sample_name, sdata in spatial_data_list:
+                sample_table = get_table(sdata)
+                if sample_table is not None and 'spatial' in sample_table.uns:
+                    if sample_name in sample_table.uns['spatial']:
+                        # Copy the library entry to concatenated table
+                        table.uns['spatial'][sample_name] = sample_table.uns['spatial'][sample_name]
+                        logging.info(f"  Preserved uns['spatial'][{sample_name}] structure")
+            
             # Add sample names - extract from region key
             # spatialdata.concatenate adds element prefixes (e.g., "cell_circles-Drexel-Pos")
             # so we need to extract just the sample name part
@@ -183,6 +420,21 @@ def concatenate_spatial_data(
                 # Add metadata to obs
                 for col in metadata_cols:
                     table.obs[col] = table.obs["sample"].map(metadata_dict[col])
+            
+            # Ensure obsm['spatial'] is preserved if it exists
+            # Check if any sample had obsm['spatial'] and preserve it
+            has_spatial_coords = False
+            for sample_name, sdata in spatial_data_list:
+                sample_table = get_table(sdata)
+                if sample_table is not None and 'spatial' in sample_table.obsm:
+                    has_spatial_coords = True
+                    break
+            
+            if has_spatial_coords and 'spatial' not in table.obsm:
+                # Try to reconstruct from concatenated data
+                # This should already be handled by SpatialData concatenation,
+                # but we verify it exists
+                logging.info("  Verifying spatial coordinates in obsm['spatial']")
             
             total_cells = table.n_obs
             total_genes = table.n_vars
@@ -247,33 +499,199 @@ def save_spatial_data(sdata: sd.SpatialData, output_path: Path, overwrite: bool 
         raise
 
 
-def load_existing_spatial_data(zarr_path: Path) -> sd.SpatialData:
+def load_existing_spatial_data(zarr_path: Path, load_images: bool = False) -> sd.SpatialData:
     """
-    Load an existing processed SpatialData object.
+    Load an existing processed SpatialData object from a .zarr file.
+    
+    Args:
+        zarr_path: Path to .zarr file
+        load_images: If False, skip loading images to save memory (default: False)
+        
+    Returns:
+        SpatialData object
+        
+    Raises:
+        FileNotFoundError: If zarr file doesn't exist
+        ValueError: If no expression table found in spatial data
+    """
+    logging.info(f"Loading existing spatial data from {zarr_path}")
+    if not load_images:
+        logging.info("  Skipping image loading (load_images=False)")
+    
+    if not zarr_path.exists():
+        raise FileNotFoundError(f"Zarr file not found: {zarr_path}")
+    
+    try:
+        sdata = sd.read_zarr(zarr_path)
+        
+        # Remove images if not needed (to save memory)
+        if not load_images and hasattr(sdata, 'images') and sdata.images:
+            logging.info(f"  Removing {len(sdata.images)} images from memory")
+            sdata.images = {}
+        
+        # Get table (handle both .table and .tables API)
+        from xenium_process.utils.helpers import get_table
+        table = get_table(sdata)
+        
+        if table is None:
+            raise ValueError("No expression table found in spatial data")
+        
+        logging.info(f"Loaded: {table.n_obs} cells × {table.n_vars} genes")
+        
+        return sdata
+    except Exception as e:
+        logging.error(f"Failed to load spatial data: {e}")
+        raise
+
+
+def load_table_only(zarr_path: Path) -> ad.AnnData:
+    """
+    Load only the AnnData table from a SpatialData .zarr file.
+    
+    This directly loads the AnnData table from zarr_path/tables/table without
+    loading the entire SpatialData object (images, shapes, etc.). This is much
+    more memory-efficient for operations that don't need images or spatial elements
+    (e.g., clustering, normalization).
     
     Args:
         zarr_path: Path to .zarr file
         
     Returns:
-        SpatialData object
+        AnnData object (table only)
     """
-    logging.info(f"Loading existing spatial data from {zarr_path}")
+    import zarr
+    
+    logging.info(f"Loading table only from {zarr_path} (direct AnnData read, skipping SpatialData)")
     
     try:
-        sdata = sd.read_zarr(zarr_path)
+        # Check if zarr store exists
+        if not zarr_path.exists():
+            raise FileNotFoundError(f"Zarr file not found: {zarr_path}")
         
-        # Get table (handle both .table and .tables API)
-        table = None
-        if hasattr(sdata, 'tables') and len(sdata.tables) > 0:
-            table = list(sdata.tables.values())[0]
-        elif hasattr(sdata, 'table'):
-            table = sdata.table
+        # Try to find the table path
+        # SpatialData typically stores tables in tables/ subdirectory
+        table_paths = [
+            zarr_path / "tables" / "table",  # Most common path
+            zarr_path / "table",  # Alternative path
+        ]
         
-        if table is not None:
-            logging.info(f"Loaded: {table.n_obs} cells × {table.n_vars} genes")
+        # Check if tables directory exists and find table name
+        tables_dir = zarr_path / "tables"
+        if tables_dir.exists():
+            # List available tables
+            import os
+            table_names = [d for d in os.listdir(tables_dir) if (tables_dir / d).is_dir()]
+            if table_names:
+                # Use first table found
+                table_name = table_names[0]
+                table_path = tables_dir / table_name
+                logging.info(f"  Found table: tables/{table_name}")
+            else:
+                # Try default name
+                table_path = tables_dir / "table"
+        else:
+            # Try root level
+            table_path = zarr_path / "table"
         
-        return sdata
+        # Try to load AnnData directly from zarr
+        # Check if path exists as zarr group
+        try:
+            store = zarr.open(str(table_path), mode='r')
+            if isinstance(store, zarr.Group):
+                # Load AnnData directly
+                adata = ad.read_zarr(str(table_path))
+                logging.info(f"Loaded table: {adata.n_obs} cells × {adata.n_vars} genes")
+                return adata
+            else:
+                raise ValueError(f"Table path exists but is not a zarr group: {table_path}")
+        except Exception as e:
+            # If direct path doesn't work, try to find it by inspecting zarr structure
+            logging.debug(f"Direct path failed, inspecting zarr structure: {e}")
+            
+            # Fallback: try to read from SpatialData but extract immediately
+            # This is less efficient but more robust
+            logging.warning("  Falling back to SpatialData read (less efficient)")
+            sdata = sd.read_zarr(zarr_path)
+            
+            # Get table
+            table = None
+            if hasattr(sdata, 'tables') and len(sdata.tables) > 0:
+                table = list(sdata.tables.values())[0]
+            elif hasattr(sdata, 'table'):
+                table = sdata.table
+            
+            if table is None:
+                raise ValueError("No expression table found in spatial data")
+            
+            # Make a copy to avoid keeping reference to SpatialData
+            adata = table.copy()
+            
+            # Clear reference to allow garbage collection
+            del sdata
+            
+            logging.info(f"Loaded table: {adata.n_obs} cells × {adata.n_vars} genes")
+            return adata
+        
     except Exception as e:
-        logging.error(f"Failed to load spatial data: {e}")
+        logging.error(f"Failed to load table: {e}")
+        raise
+
+
+def save_table_only(adata: ad.AnnData, zarr_path: Path, overwrite: bool = False) -> None:
+    """
+    Save AnnData table directly to a SpatialData .zarr file without loading other elements.
+    
+    This directly writes the AnnData table to zarr_path/tables/table without
+    loading the entire SpatialData object. This is much more memory-efficient for
+    inplace operations that only modify the table (e.g., clustering, normalization).
+    
+    Args:
+        adata: AnnData object to save
+        zarr_path: Path to .zarr file
+        overwrite: Whether to overwrite existing table (default: False)
+    """
+    import zarr
+    import shutil
+    
+    logging.info(f"Saving table only to {zarr_path} (direct AnnData write, skipping SpatialData)")
+    
+    try:
+        # Check if zarr store exists
+        if not zarr_path.exists():
+            raise FileNotFoundError(f"Zarr file not found: {zarr_path}")
+        
+        # Determine table path
+        tables_dir = zarr_path / "tables"
+        table_name = "table"  # Default table name
+        
+        # Check if tables directory exists
+        if tables_dir.exists():
+            # Check for existing table name
+            import os
+            if os.path.exists(tables_dir):
+                existing_tables = [d for d in os.listdir(tables_dir) if (tables_dir / d).is_dir()]
+                if existing_tables:
+                    table_name = existing_tables[0]  # Use existing table name
+                    logging.info(f"  Using existing table: tables/{table_name}")
+        else:
+            # Create tables directory if it doesn't exist
+            tables_dir.mkdir(parents=True, exist_ok=True)
+            logging.info(f"  Created tables directory")
+        
+        table_path = tables_dir / table_name
+        
+        # Handle overwrite
+        if overwrite and table_path.exists():
+            # Remove existing table
+            logging.info(f"  Removing existing table at {table_path}")
+            shutil.rmtree(table_path)
+        
+        # Write AnnData directly to zarr
+        adata.write_zarr(str(table_path), overwrite=overwrite)
+        
+        logging.info(f"Successfully saved table: {adata.n_obs} cells × {adata.n_vars} genes")
+        
+    except Exception as e:
+        logging.error(f"Failed to save table: {e}")
         raise
 

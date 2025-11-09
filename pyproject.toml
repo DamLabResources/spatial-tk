@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     # Spatial data handling
     "spatialdata",
+    "spatialdata_io",
     "squidpy",
     
     # Core single-cell analysis
