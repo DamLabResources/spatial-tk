@@ -59,18 +59,31 @@ def test_full_pipeline_end_to_end(test_samples_csv, test_markers_csv, tmp_zarr_c
     
     assert result.returncode == 0, f"Cluster failed: {result.stderr}"
     
-    # Step 4: Annotate (inplace)
+    # Step 4: Quantitate – score cells against the marker gene list (inplace)
     result = subprocess.run([
         sys.executable, '-m', 'xenium_process.cli',
-        'annotate',
+        'quantitate',
         '--input', str(concat_output),
         '--inplace',
-        '--markers', str(test_markers_csv)
+        '--markers', str(test_markers_csv),
+        '--tmin', '1',
     ], capture_output=True, text=True)
-    
-    assert result.returncode == 0, f"Annotate failed: {result.stderr}"
-    
-    # Step 5: Differential analysis
+
+    assert result.returncode == 0, f"Quantitate failed: {result.stderr}"
+
+    # Step 5: Assign – label clusters from the scored obsm matrix (inplace)
+    result = subprocess.run([
+        sys.executable, '-m', 'xenium_process.cli',
+        'assign',
+        '--input', str(concat_output),
+        '--inplace',
+        '--score-key', 'score_mlm_custom',
+        '--cluster-key', 'leiden_res0p5',
+    ], capture_output=True, text=True)
+
+    assert result.returncode == 0, f"Assign failed: {result.stderr}"
+
+    # Step 6: Differential analysis
     diff_output_dir = tmp_zarr_cleanup / "differential"
     result = subprocess.run([
         sys.executable, '-m', 'xenium_process.cli',

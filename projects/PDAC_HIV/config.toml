@@ -33,23 +33,47 @@ leiden_resolution = "0.2,0.5,1.0"
 save_plots = true
 resume = true
 
-[annotate]
+[quantitate]
 # Path to input clustered .zarr file
 input = "data.zarr"
 # Modify the input file in place instead of creating a new file
 inplace = true
 # Path to CSV file with marker genes (columns: cell_type, gene)
 markers = "markers.csv"
-
-# Pre-calculate MLM enrichment scores for pathway/TF resources
-calculate_ulm = true
-# Minimum sensitivity for PanglaoDB markers in MLM (default: 0.5)
-panglao_min_sensitivity = 0.5
-# Minimum number of marker genes per cell type for MLM annotation
+# Key suffix for custom marker scores
+score_key = "custom"
+# Scoring method
+method = "mlm"
+# Minimum number of targets per source for decoupler
 tmin = 2
+# Also score against built-in decoupler resources
+preset_resources = "panglao"
+# Minimum sensitivity for PanglaoDB markers
+panglao_min_sensitivity = 0.5
+# Only use canonical PanglaoDB markers
+panglao_canonical_only = true
+# No cell filter — score all cells
+filter_obs = null
+# Generate and save enrichment heatmap plots
+save_plots = true
+
+[assign]
+# Path to input scored .zarr file
+input = "data.zarr"
+# Modify the input file in place
+inplace = true
+# obsm key of the scores to assign from (produced by quantitate)
+score_key = "score_mlm_custom"
+# Use all leiden_res* columns
+cluster_key = null
+# Default annotation key naming
+annotation_key = null
+# Assignment strategy
+strategy = "top_positive"
+# Run differential expression
+run_de = true
 # Generate and save annotation plots
 save_plots = true
-resume = true
 
 #[differential]
 # Path to input .zarr file with annotations

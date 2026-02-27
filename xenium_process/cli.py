@@ -13,7 +13,7 @@ import warnings
 # Suppress warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-from xenium_process.commands import concat, normalize, cluster, annotate, differential
+from xenium_process.commands import concat, normalize, cluster, quantitate, assign, differential
 from xenium_process.utils.helpers import setup_logging
 
 
@@ -39,19 +39,31 @@ Examples:
   # Cluster with multiple resolutions
   xenium_process cluster --input merged.zarr --inplace --leiden-resolution 0.2,0.5,1.0
   
-  # Annotate with markers
-  xenium_process annotate --input merged.zarr --inplace --markers markers.csv
-  
+  # Score enrichment with a custom marker list (all cells)
+  xenium_process quantitate --input clustered.zarr --inplace --markers markers.csv
+
+  # Score only fibroblasts against a custom list, plus built-in PanglaoDB
+  xenium_process quantitate --input clustered.zarr --inplace \\
+      --markers markers.csv --filter-obs "cell_type==Fibroblast" \\
+      --preset-resources panglao
+
+  # Assign cell type labels to clusters from the computed scores
+  xenium_process assign --input clustered.zarr --inplace \\
+      --score-key score_mlm_custom
+
   # Differential analysis between groups
-  xenium_process differential --input merged.zarr --output-dir results/ \\
+  xenium_process differential --input annotated.zarr --output-dir results/ \\
       --groupby status --compare-groups HIV,NEG
   
   # Full pipeline (separate files)
   xenium_process concat --input samples.csv --output step1_concat.zarr
   xenium_process normalize --input step1_concat.zarr --output step2_normalized.zarr
   xenium_process cluster --input step2_normalized.zarr --output step3_clustered.zarr
-  xenium_process annotate --input step3_clustered.zarr --output step4_annotated.zarr
-  xenium_process differential --input step4_annotated.zarr --output-dir results/
+  xenium_process quantitate --input step3_clustered.zarr --output step4_scored.zarr \\
+      --markers markers.csv
+  xenium_process assign --input step4_scored.zarr --output step5_annotated.zarr \\
+      --score-key score_mlm_custom
+  xenium_process differential --input step5_annotated.zarr --output-dir results/
         """
     )
     
@@ -89,15 +101,32 @@ Examples:
     cluster.add_arguments(cluster_parser)
     cluster_parser.set_defaults(func=cluster.main)
     
-    # Add annotate subcommand
-    annotate_parser = subparsers.add_parser(
-        'annotate',
-        help='Annotate cell types',
-        description='Perform cell type annotation using marker genes and/or MLM scoring'
+    # Add quantitate subcommand
+    quantitate_parser = subparsers.add_parser(
+        'quantitate',
+        help='Run enrichment scoring (MLM/ULM) on a gene list or built-in resources',
+        description=(
+            'Run MLM or ULM enrichment scoring using a custom marker gene list, '
+            'decoupler built-in resources (panglao, hallmark, collectri, dorothea, progeny), '
+            'or both. Supports optional cell filtering via --filter-obs.'
+        ),
     )
-    annotate.add_arguments(annotate_parser)
-    annotate_parser.set_defaults(func=annotate.main)
-    
+    quantitate.add_arguments(quantitate_parser)
+    quantitate_parser.set_defaults(func=quantitate.main)
+
+    # Add assign subcommand
+    assign_parser = subparsers.add_parser(
+        'assign',
+        help='Assign cell type labels to clusters from enrichment scores',
+        description=(
+            'Read an enrichment score matrix from obsm (produced by quantitate) '
+            'and assign a cell type label to each cluster using a configurable strategy. '
+            'Optionally runs per-cluster differential expression.'
+        ),
+    )
+    assign.add_arguments(assign_parser)
+    assign_parser.set_defaults(func=assign.main)
+
     # Add differential subcommand
     differential_parser = subparsers.add_parser(
         'differential',

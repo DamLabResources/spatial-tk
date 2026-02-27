@@ -44,24 +44,54 @@ leiden_resolution = "0.2,0.5,1.0"
 # Generate and save UMAP plots
 save_plots = true
 
-[annotate]
+[quantitate]
 # Path to input clustered .zarr file
 input = "clustered.zarr"
 # Modify the input file in place instead of creating a new file
 inplace = false
 # Path to output .zarr file (required unless inplace = true)
-output = "annotated.zarr"
+output = "scored.zarr"
 # Path to CSV file with marker genes (columns: cell_type, gene)
+# At least one of markers or preset_resources is required
 markers = "markers.csv"
-# Cluster column key to use for annotation (e.g., "leiden_res0p5")
-# If null, will use all leiden_res* columns found
-cluster_key = null
-# Pre-calculate MLM enrichment scores for pathway/TF resources
-calculate_ulm = true
-# Minimum sensitivity for PanglaoDB markers in MLM (default: 0.5)
-panglao_min_sensitivity = 0.5
-# Minimum number of marker genes per cell type for MLM annotation
+# Key suffix for custom marker scores (stored as obsm['score_mlm_<score_key>'])
+score_key = "custom"
+# Scoring method: "mlm" (default) or "ulm"
+method = "mlm"
+# Minimum number of targets per source for decoupler
 tmin = 2
+# Comma-separated built-in resources to score: panglao, hallmark, collectri, dorothea, progeny
+# Leave empty or remove to skip preset scoring
+preset_resources = null
+# Minimum sensitivity for PanglaoDB markers (used when panglao is in preset_resources)
+panglao_min_sensitivity = 0.5
+# Only use canonical PanglaoDB markers
+panglao_canonical_only = true
+# Optional cell filter: "column==value" (e.g. "cell_type==Fibroblast")
+# If null, all cells are scored
+filter_obs = null
+# Generate and save enrichment heatmap plots
+save_plots = false
+
+[assign]
+# Path to input scored .zarr file (produced by quantitate)
+input = "scored.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = false
+# Path to output .zarr file (required unless inplace = true)
+output = "annotated.zarr"
+# Full obsm key of the score matrix to use (must match quantitate output)
+# e.g. "score_mlm_custom" or "score_mlm_PanglaoDB"
+score_key = "score_mlm_custom"
+# Cluster column key to assign (e.g. "leiden_res0p5")
+# If null, all leiden_res* columns are used
+cluster_key = null
+# obs column name for cell type labels; defaults to "cell_type_res{resolution}"
+annotation_key = null
+# Assignment strategy: "top_positive" (default)
+strategy = "top_positive"
+# Run differential expression per cluster key
+run_de = true
 # Generate and save annotation plots
 save_plots = true
 

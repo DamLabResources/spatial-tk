@@ -19,7 +19,7 @@ help:
 	@echo "  make format            - Format code with black"
 	@echo "  make clean             - Remove build artifacts and caches"
 	@echo "  make clean-all         - Remove build artifacts, caches, and venv"
-	@echo "  make run ROOT=/path    - Run full pipeline using config.toml in ROOT directory"
+	@echo "  make run ROOT=/path    - Run full pipeline (6 steps) using config.toml in ROOT directory"
 
 # Create virtual environment
 venv:
@@ -140,11 +140,15 @@ run:
 	xenium_process cluster --config "config.toml" || exit 1
 	@cd "$(ROOT)" && \
 	echo "" && \
-	echo "Step 4: Annotate cell types" && \
-	xenium_process annotate --config "config.toml" || exit 1
+	echo "Step 4: Quantitate enrichment scores" && \
+	xenium_process quantitate --config "config.toml" || exit 1
 	@cd "$(ROOT)" && \
 	echo "" && \
-	echo "Step 5: Differential expression analysis" && \
+	echo "Step 5: Assign cell type labels" && \
+	xenium_process assign --config "config.toml" || exit 1
+	@cd "$(ROOT)" && \
+	echo "" && \
+	echo "Step 6: Differential expression analysis" && \
 	xenium_process differential --config "config.toml" || exit 1
 	@echo ""
 	@echo "=========================================="

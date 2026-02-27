@@ -33,12 +33,27 @@ output = "config_clustered.zarr"
 leiden_resolution = "0.3,0.6"
 save_plots = true
 
-[annotate]
+[quantitate]
 input = "placeholder.zarr"
-output = "config_annotated.zarr"
-calculate_ulm = true
-panglao_min_sensitivity = 0.6
+output = "config_scored.zarr"
+markers = "markers.csv"
+score_key = "custom"
+method = "mlm"
 tmin = 3
+preset_resources = null
+panglao_min_sensitivity = 0.6
+panglao_canonical_only = true
+filter_obs = null
+save_plots = false
+
+[assign]
+input = "config_scored.zarr"
+output = "config_annotated.zarr"
+score_key = "score_mlm_custom"
+cluster_key = null
+annotation_key = null
+strategy = "top_positive"
+run_de = true
 save_plots = false
 
 [differential]

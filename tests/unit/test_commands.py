@@ -1,7 +1,9 @@
 """
 Unit tests for CLI command modules.
 
-These tests verify that command-line arguments are properly passed to core functions.
+These tests verify that command-line arguments are properly passed to core
+functions. The annotate command has been replaced by quantitate + assign;
+see test_quantitate_command.py and test_assign_command.py for those tests.
 """
 
 import pytest
@@ -10,151 +12,169 @@ from argparse import Namespace
 from pathlib import Path
 
 
-def test_annotate_command_passes_tmin_default():
-    """Test that annotate command uses default tmin value of 2."""
-    from xenium_process.commands import annotate
-    
-    # Create mock args with tmin default
+# ---------------------------------------------------------------------------
+# quantitate – quick smoke tests for tmin and score_key wiring
+# ---------------------------------------------------------------------------
+
+def test_quantitate_passes_tmin_default():
+    """quantitate uses default tmin=2."""
+    from xenium_process.commands import quantitate
+
     args = Namespace(
         input="test.zarr",
         output="output.zarr",
         inplace=False,
         markers="markers.csv",
-        cluster_key=None,
-        calculate_ulm=False,
+        score_key="custom",
+        method="mlm",
+        tmin=2,
+        preset_resources=None,
         panglao_min_sensitivity=0.5,
-        tmin=2,  # Default value
+        panglao_canonical_only=True,
+        filter_obs=None,
         save_plots=False,
-        config=None  # No config file
+        config=None,
     )
-    
-    # Mock all the functions that would be called
-    with patch('xenium_process.commands.annotate.load_existing_spatial_data') as mock_load, \
-         patch('xenium_process.commands.annotate.get_table') as mock_get_table, \
-         patch('xenium_process.commands.annotate.annotation.load_marker_genes') as mock_load_markers, \
-         patch('xenium_process.commands.annotate.annotation.annotate_with_markers') as mock_annotate, \
-         patch('xenium_process.commands.annotate.annotation.run_differential_expression'), \
-         patch('xenium_process.commands.annotate.save_spatial_data'), \
-         patch('xenium_process.commands.annotate.set_table'), \
-         patch('xenium_process.commands.annotate.prepare_spatial_data_for_save'), \
-         patch('xenium_process.commands.annotate.Path'):
-        
-        # Setup mocks
+
+    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
+         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("xenium_process.commands.quantitate.save_spatial_data"), \
+         patch("xenium_process.commands.quantitate.set_table"), \
+         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
+         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
+         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+
+        mock_path_obj = MagicMock()
+        mock_path_obj.exists.return_value = True
+        mock_path_cls.return_value = mock_path_obj
+        mock_out.return_value = mock_path_obj
+
         mock_sdata = MagicMock()
         mock_adata = MagicMock()
-        mock_adata.obs.columns = ['leiden_res0p5']
+        mock_adata.var_names = []
+        mock_adata.obsm = {}
         mock_load.return_value = mock_sdata
         mock_get_table.return_value = mock_adata
-        mock_load_markers.return_value = {'T cells': ['CD3D']}
-        
-        # Make Path(markers).exists() return True
-        with patch('xenium_process.commands.annotate.Path') as mock_path_class:
-            mock_path_obj = MagicMock()
-            mock_path_obj.exists.return_value = True
-            mock_path_class.return_value = mock_path_obj
-            
-            # Run the command
-            try:
-                annotate.main(args)
-            except SystemExit:
-                pass  # Expected when paths don't exist
-            
-            # Verify annotate_with_markers was called with tmin=2
-            assert mock_annotate.called, "annotate_with_markers should have been called"
-            call_kwargs = mock_annotate.call_args[1]
-            assert 'tmin' in call_kwargs, "tmin parameter should be passed"
-            assert call_kwargs['tmin'] == 2, "tmin should be 2 (default)"
+        mock_load_markers.return_value = {"T cells": ["CD3D"]}
+        mock_to_df.return_value = MagicMock()
+        mock_score.return_value = mock_adata
 
-
-def test_annotate_command_passes_custom_tmin():
-    """Test that annotate command respects custom tmin value."""
-    from xenium_process.commands import annotate
-    
-    # Create mock args with custom tmin
-    args = Namespace(
-        input="test.zarr",
-        output="output.zarr",
-        inplace=False,
-        markers="markers.csv",
-        cluster_key=None,
-        calculate_ulm=False,
-        panglao_min_sensitivity=0.5,
-        tmin=1,  # Custom value for small marker sets
-        save_plots=False,
-        config=None  # No config file
-    )
-    
-    # Mock all the functions
-    with patch('xenium_process.commands.annotate.load_existing_spatial_data') as mock_load, \
-         patch('xenium_process.commands.annotate.get_table') as mock_get_table, \
-         patch('xenium_process.commands.annotate.annotation.load_marker_genes') as mock_load_markers, \
-         patch('xenium_process.commands.annotate.annotation.annotate_with_markers') as mock_annotate, \
-         patch('xenium_process.commands.annotate.annotation.run_differential_expression'), \
-         patch('xenium_process.commands.annotate.save_spatial_data'), \
-         patch('xenium_process.commands.annotate.set_table'), \
-         patch('xenium_process.commands.annotate.prepare_spatial_data_for_save'):
-        
-        # Setup mocks
-        mock_sdata = MagicMock()
-        mock_adata = MagicMock()
-        mock_adata.obs.columns = ['leiden_res0p5']
-        mock_load.return_value = mock_sdata
-        mock_get_table.return_value = mock_adata
-        mock_load_markers.return_value = {'T cells': ['CD3D']}
-        
-        # Make Path(markers).exists() return True
-        with patch('xenium_process.commands.annotate.Path') as mock_path_class:
-            mock_path_obj = MagicMock()
-            mock_path_obj.exists.return_value = True
-            mock_path_class.return_value = mock_path_obj
-            
-            # Run the command
-            try:
-                annotate.main(args)
-            except SystemExit:
-                pass
-            
-            # Verify annotate_with_markers was called with tmin=1
-            assert mock_annotate.called
-            call_kwargs = mock_annotate.call_args[1]
-            assert call_kwargs['tmin'] == 1, "tmin should be 1 (custom value)"
-
-
-def test_annotate_command_without_markers_no_tmin_error():
-    """Test that annotate command works without markers (no tmin needed)."""
-    from xenium_process.commands import annotate
-    
-    # Create mock args without markers
-    args = Namespace(
-        input="test.zarr",
-        output="output.zarr",
-        inplace=False,
-        markers=None,  # No markers
-        cluster_key="leiden_res0p5",
-        calculate_ulm=False,
-        panglao_min_sensitivity=0.5,
-        save_plots=False,
-        config=None  # No config file
-    )
-    
-    # Mock all the functions
-    with patch('xenium_process.commands.annotate.load_existing_spatial_data') as mock_load, \
-         patch('xenium_process.commands.annotate.get_table') as mock_get_table, \
-         patch('xenium_process.commands.annotate.annotation.run_differential_expression'), \
-         patch('xenium_process.commands.annotate.save_spatial_data'), \
-         patch('xenium_process.commands.annotate.set_table'), \
-         patch('xenium_process.commands.annotate.prepare_spatial_data_for_save'), \
-         patch('xenium_process.commands.annotate.Path'):
-        
-        mock_sdata = MagicMock()
-        mock_adata = MagicMock()
-        mock_adata.obs.columns = ['leiden_res0p5']
-        mock_load.return_value = mock_sdata
-        mock_get_table.return_value = mock_adata
-        
-        # Should not raise an error
         try:
-            annotate.main(args)
+            quantitate.main(args)
         except SystemExit:
-            pass  # Expected when paths don't exist
+            pass
 
+        assert mock_score.called
+        assert mock_score.call_args[1]["tmin"] == 2
+
+
+def test_quantitate_passes_custom_tmin():
+    """quantitate respects a custom tmin value."""
+    from xenium_process.commands import quantitate
+
+    args = Namespace(
+        input="test.zarr",
+        output="output.zarr",
+        inplace=False,
+        markers="markers.csv",
+        score_key="custom",
+        method="mlm",
+        tmin=1,
+        preset_resources=None,
+        panglao_min_sensitivity=0.5,
+        panglao_canonical_only=True,
+        filter_obs=None,
+        save_plots=False,
+        config=None,
+    )
+
+    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
+         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("xenium_process.commands.quantitate.save_spatial_data"), \
+         patch("xenium_process.commands.quantitate.set_table"), \
+         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
+         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
+         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+
+        mock_path_obj = MagicMock()
+        mock_path_obj.exists.return_value = True
+        mock_path_cls.return_value = mock_path_obj
+        mock_out.return_value = mock_path_obj
+
+        mock_sdata = MagicMock()
+        mock_adata = MagicMock()
+        mock_adata.var_names = []
+        mock_adata.obsm = {}
+        mock_load.return_value = mock_sdata
+        mock_get_table.return_value = mock_adata
+        mock_load_markers.return_value = {"T cells": ["CD3D"]}
+        mock_to_df.return_value = MagicMock()
+        mock_score.return_value = mock_adata
+
+        try:
+            quantitate.main(args)
+        except SystemExit:
+            pass
+
+        assert mock_score.called
+        assert mock_score.call_args[1]["tmin"] == 1
+
+
+# ---------------------------------------------------------------------------
+# assign – smoke test for default DE behaviour
+# ---------------------------------------------------------------------------
+
+def test_assign_runs_de_by_default():
+    """assign runs differential expression by default."""
+    from xenium_process.commands import assign
+
+    args = Namespace(
+        input="test.zarr",
+        output="output.zarr",
+        inplace=False,
+        score_key="score_mlm_custom",
+        cluster_key="leiden_res0p5",
+        annotation_key=None,
+        strategy="top_positive",
+        run_de=True,
+        save_plots=False,
+        config=None,
+    )
+
+    mock_sdata = MagicMock()
+    mock_adata = MagicMock()
+    mock_adata.obsm = {"score_mlm_custom": MagicMock()}
+    mock_adata.obs.columns = ["leiden_res0p5"]
+
+    with patch("xenium_process.commands.assign.Path") as mock_path_cls, \
+         patch("xenium_process.commands.assign.load_existing_spatial_data") as mock_load, \
+         patch("xenium_process.commands.assign.save_spatial_data"), \
+         patch("xenium_process.commands.assign.set_table"), \
+         patch("xenium_process.commands.assign.prepare_spatial_data_for_save"), \
+         patch("xenium_process.commands.assign.get_output_path") as mock_out, \
+         patch("xenium_process.commands.assign.get_table") as mock_get_table, \
+         patch("xenium_process.commands.assign.annotation.assign_clusters") as mock_assign_clusters, \
+         patch("xenium_process.commands.assign.annotation.run_differential_expression") as mock_de:
+
+        mock_path_obj = MagicMock()
+        mock_path_obj.exists.return_value = True
+        mock_path_cls.return_value = mock_path_obj
+        mock_out.return_value = mock_path_obj
+
+        mock_load.return_value = mock_sdata
+        mock_get_table.return_value = mock_adata
+        mock_assign_clusters.return_value = mock_adata
+        mock_de.return_value = mock_adata
+
+        try:
+            assign.main(args)
+        except SystemExit:
+            pass
+
+        assert mock_de.called, "run_differential_expression should have been called"
