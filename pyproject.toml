@@ -66,9 +66,9 @@ dev = [
 spatial-tk = "spatial_tk.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/hope-lab/spatial-tk"
-Repository = "https://github.com/hope-lab/spatial-tk"
-Documentation = "https://github.com/hope-lab/spatial-tk/blob/main/README.md"
+Homepage = "https://github.com/DamLabResources/spatial-tk"
+Repository = "https://github.com/DamLabResources/spatial-tk"
+Documentation = "https://github.com/DamLabResources/spatial-tk/blob/main/README.md"
 
 [tool.setuptools]
 packages = ["spatial_tk", "spatial_tk.commands", "spatial_tk.core", "spatial_tk.utils"]
