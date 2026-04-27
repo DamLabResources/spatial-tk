@@ -7,7 +7,7 @@ import argparse
 import tempfile
 from pathlib import Path
 
-from xenium_process.utils.config import load_config, merge_config_with_args, convert_value
+from spatial_tk.utils.config import load_config, merge_config_with_args, convert_value
 
 
 class TestLoadConfig:

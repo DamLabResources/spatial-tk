@@ -10,7 +10,7 @@ The Xenium spatial transcriptomics analysis tool has been successfully refactore
 
 ```
 clustering-tools/
-├── xenium_process/           # Main package
+├── spatial_tk/           # Main package
 │   ├── __init__.py
 │   ├── cli.py               # CLI entry point
 │   ├── commands/            # Command modules
@@ -43,34 +43,34 @@ clustering-tools/
 
 Five independent subcommands replace the monolithic script:
 
-#### `xenium_process concat`
+#### `spatial-tk concat`
 - Concatenates multiple .zarr files
 - Supports downsampling for testing
 - **Input:** CSV file with sample paths
 - **Output:** Single .zarr file
 
-#### `xenium_process normalize`
+#### `spatial-tk normalize`
 - QC, filtering, normalization, HVG selection
 - Supports `--inplace` to avoid duplication
 - Configurable parameters (min-genes, min-cells, n-top-genes)
 - **Input:** .zarr file
 - **Output:** Normalized .zarr (new file or in-place)
 
-#### `xenium_process cluster`
+#### `spatial-tk cluster`
 - PCA, neighbor graph, UMAP, Leiden clustering
 - Multiple resolutions support (comma-separated)
 - Supports `--inplace`
 - **Input:** Normalized .zarr
 - **Output:** Clustered .zarr (new file or in-place)
 
-#### `xenium_process annotate`
+#### `spatial-tk annotate`
 - Marker-based cell type annotation
 - Optional MLM enrichment scoring (hallmark, collectri, dorothea, progeny, PanglaoDB)
 - Supports `--inplace`
 - **Input:** Clustered .zarr
 - **Output:** Annotated .zarr (new file or in-place)
 
-#### `xenium_process differential`
+#### `spatial-tk differential`
 - Two modes:
   - **Mode A:** Compare two specific groups (e.g., HIV vs NEG)
   - **Mode B:** Find marker genes for all clusters/groups
@@ -83,13 +83,13 @@ Five independent subcommands replace the monolithic script:
 #### Inplace Processing
 Commands support `--inplace` flag to modify datasets without creating copies, saving disk space:
 ```bash
-xenium_process normalize --input data.zarr --inplace
+spatial-tk normalize --input data.zarr --inplace
 ```
 
 #### Flexible I/O
 Each command explicitly specifies input and output:
 ```bash
-xenium_process normalize --input raw.zarr --output normalized.zarr
+spatial-tk normalize --input raw.zarr --output normalized.zarr
 ```
 
 #### Enhanced Differential Analysis
@@ -130,7 +130,7 @@ python scripts/create_test_data.py \
 #### pyproject.toml
 - Python ≥3.9 requirement
 - All dependencies specified
-- Console script entry point: `xenium_process`
+- Console script entry point: `spatial-tk`
 - Pytest configuration
 - Black and mypy configuration
 - Optional dev dependencies
@@ -174,24 +174,24 @@ python main.py \
 ### New Workflow (In-place)
 ```bash
 # Step 1: Concatenate
-xenium_process concat --input samples.csv --output data.zarr
+spatial-tk concat --input samples.csv --output data.zarr
 
 # Step 2-4: Process in place
-xenium_process normalize --input data.zarr --inplace --save-plots
-xenium_process cluster --input data.zarr --inplace --leiden-resolution 0.5,1.0 --save-plots
-xenium_process annotate --input data.zarr --inplace --markers markers.csv --save-plots
+spatial-tk normalize --input data.zarr --inplace --save-plots
+spatial-tk cluster --input data.zarr --inplace --leiden-resolution 0.5,1.0 --save-plots
+spatial-tk annotate --input data.zarr --inplace --markers markers.csv --save-plots
 
 # Step 5: Differential analysis
-xenium_process differential --input data.zarr --output-dir results/ --groupby leiden_res0p5 --save-plots
+spatial-tk differential --input data.zarr --output-dir results/ --groupby leiden_res0p5 --save-plots
 ```
 
 ### New Workflow (Separate Files)
 ```bash
-xenium_process concat --input samples.csv --output step1_concat.zarr
-xenium_process normalize --input step1_concat.zarr --output step2_normalized.zarr
-xenium_process cluster --input step2_normalized.zarr --output step3_clustered.zarr
-xenium_process annotate --input step3_clustered.zarr --output step4_annotated.zarr
-xenium_process differential --input step4_annotated.zarr --output-dir results/
+spatial-tk concat --input samples.csv --output step1_concat.zarr
+spatial-tk normalize --input step1_concat.zarr --output step2_normalized.zarr
+spatial-tk cluster --input step2_normalized.zarr --output step3_clustered.zarr
+spatial-tk annotate --input step3_clustered.zarr --output step4_annotated.zarr
+spatial-tk differential --input step4_annotated.zarr --output-dir results/
 ```
 
 ## Installation
@@ -239,7 +239,7 @@ The refactoring has been verified:
 - ✅ README updated with new CLI usage
 - ✅ Makefile updated with build/test targets
 - ✅ Package installs successfully
-- ✅ CLI command `xenium_process` available
+- ✅ CLI command `spatial-tk` available
 
 ## Benefits
 

@@ -6,7 +6,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from xenium_process.utils.helpers import parse_resolutions, get_output_path, prepare_spatial_data_for_save
+from spatial_tk.utils.helpers import parse_resolutions, get_output_path, prepare_spatial_data_for_save
 
 
 def test_parse_resolutions():

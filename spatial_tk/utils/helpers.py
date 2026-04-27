@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Utility helper functions for xenium_process.
+Utility helper functions for spatial_tk.
 
 This module contains common functionality used across multiple commands.
 """

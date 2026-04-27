@@ -104,7 +104,7 @@ def setup_squidpy_structure(sdata: sd.SpatialData, library_id: str) -> None:
         sdata: SpatialData object
         library_id: Library/sample identifier (used as key in uns['spatial'])
     """
-    from xenium_process.utils.helpers import get_table
+    from spatial_tk.utils.helpers import get_table
     
     # Get AnnData table
     adata = get_table(sdata)
@@ -278,7 +278,7 @@ def load_spatial_datasets(sample_df: pd.DataFrame, load_images: bool = True) -> 
                 setup_squidpy_structure(sdata, sample_name)
             else:
                 # Still set up coordinates, but skip images
-                from xenium_process.utils.helpers import get_table
+                from spatial_tk.utils.helpers import get_table
                 adata = get_table(sdata)
                 if adata is not None:
                     # Ensure coordinates are in obsm['spatial']
@@ -287,7 +287,7 @@ def load_spatial_datasets(sample_df: pd.DataFrame, load_images: bool = True) -> 
                         logging.info(f"    Copied X_spatial to obsm['spatial']")
             
             # Update table back to SpatialData (in case it was modified)
-            from xenium_process.utils.helpers import get_table, set_table
+            from spatial_tk.utils.helpers import get_table, set_table
             table = get_table(sdata)
             if table is not None:
                 set_table(sdata, table)
@@ -654,7 +654,7 @@ def load_existing_spatial_data(zarr_path: Path, load_images: bool = False) -> sd
             sdata.images = {}
         
         # Get table (handle both .table and .tables API)
-        from xenium_process.utils.helpers import get_table
+        from spatial_tk.utils.helpers import get_table
         table = get_table(sdata)
         
         if table is None:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-All `xenium_process` commands support TOML (Tom's Obvious, Minimal Language) configuration files. Using config files makes your analysis pipelines reproducible by capturing all parameters in a single, version-controlled file.
+All `spatial-tk` commands support TOML (Tom's Obvious, Minimal Language) configuration files. Using config files makes your analysis pipelines reproducible by capturing all parameters in a single, version-controlled file.
 
 ## TOML Format Basics
 
@@ -70,9 +70,9 @@ leiden_resolution = "0.5"
 Each command accepts an optional `--config` argument:
 
 ```bash
-xenium_process concat --config config.toml --input samples.csv --output merged.zarr
-xenium_process normalize --config config.toml --input merged.zarr --inplace
-xenium_process cluster --config config.toml --input merged.zarr --inplace
+spatial-tk concat --config config.toml --input samples.csv --output merged.zarr
+spatial-tk normalize --config config.toml --input merged.zarr --inplace
+spatial-tk cluster --config config.toml --input merged.zarr --inplace
 ```
 
 ### Config File Structure
@@ -131,7 +131,7 @@ Config keys use **underscores** (e.g., `min_genes`, `n_top_genes`), while CLI ar
 Example:
 ```bash
 # Config has downsample = 0.5, but CLI overrides it to 0.8
-xenium_process concat --config config.toml --input samples.csv --output merged.zarr --downsample 0.8
+spatial-tk concat --config config.toml --input samples.csv --output merged.zarr --downsample 0.8
 ```
 
 ## Workflow for Reproducible Analyses
@@ -168,11 +168,11 @@ panglao_min_sensitivity = 0.6
 
 ```bash
 # Full pipeline with config file
-xenium_process concat --config my_analysis_config.toml --input samples.csv --output data.zarr
-xenium_process normalize --config my_analysis_config.toml --input data.zarr --inplace
-xenium_process cluster --config my_analysis_config.toml --input data.zarr --inplace
-xenium_process annotate --config my_analysis_config.toml --input data.zarr --inplace
-xenium_process differential --config my_analysis_config.toml --input data.zarr --output-dir results/
+spatial-tk concat --config my_analysis_config.toml --input samples.csv --output data.zarr
+spatial-tk normalize --config my_analysis_config.toml --input data.zarr --inplace
+spatial-tk cluster --config my_analysis_config.toml --input data.zarr --inplace
+spatial-tk annotate --config my_analysis_config.toml --input data.zarr --inplace
+spatial-tk differential --config my_analysis_config.toml --input data.zarr --output-dir results/
 ```
 
 ### Step 4: Version Control
@@ -230,10 +230,10 @@ Use CLI arguments only for values that change frequently:
 
 ```bash
 # Good: Use config for most parameters, override only input/output
-xenium_process concat --config config.toml --input new_samples.csv --output new_output.zarr
+spatial-tk concat --config config.toml --input new_samples.csv --output new_output.zarr
 
 # Less ideal: Overriding many parameters defeats the purpose
-xenium_process concat --config config.toml --input samples.csv --output merged.zarr --downsample 0.5 --min-genes 200 ...
+spatial-tk concat --config config.toml --input samples.csv --output merged.zarr --downsample 0.5 --min-genes 200 ...
 ```
 
 ### 5. Validate Your Config
@@ -274,7 +274,7 @@ Use different config files for parameter sweeps:
 ```bash
 # Run with different resolutions
 for config in config_res0p2.toml config_res0p5.toml config_res1p0.toml; do
-    xenium_process cluster --config $config --input data.zarr --inplace
+    spatial-tk cluster --config $config --input data.zarr --inplace
 done
 ```
 
@@ -283,8 +283,8 @@ done
 ```bash
 # Same pipeline, different configs
 for project in project1 project2 project3; do
-    xenium_process concat --config ${project}_config.toml --input ${project}_samples.csv --output ${project}_merged.zarr
-    xenium_process normalize --config ${project}_config.toml --input ${project}_merged.zarr --inplace
+    spatial-tk concat --config ${project}_config.toml --input ${project}_samples.csv --output ${project}_merged.zarr
+    spatial-tk normalize --config ${project}_config.toml --input ${project}_merged.zarr --inplace
     # ... continue pipeline
 done
 ```
@@ -303,7 +303,7 @@ If config values aren't being applied:
 
 ```bash
 # Use absolute path if relative path doesn't work
-xenium_process concat --config /full/path/to/config.toml ...
+spatial-tk concat --config /full/path/to/config.toml ...
 ```
 
 ### Invalid TOML Syntax
@@ -348,11 +348,11 @@ groupby = "leiden_res0p5"
 EOF
 
 # 2. Run pipeline
-xenium_process concat --config my_config.toml --input samples.csv --output merged.zarr
-xenium_process normalize --config my_config.toml --input merged.zarr --inplace
-xenium_process cluster --config my_config.toml --input merged.zarr --inplace
-xenium_process annotate --config my_config.toml --input merged.zarr --inplace
-xenium_process differential --config my_config.toml --input merged.zarr --output-dir results/
+spatial-tk concat --config my_config.toml --input samples.csv --output merged.zarr
+spatial-tk normalize --config my_config.toml --input merged.zarr --inplace
+spatial-tk cluster --config my_config.toml --input merged.zarr --inplace
+spatial-tk annotate --config my_config.toml --input merged.zarr --inplace
+spatial-tk differential --config my_config.toml --input merged.zarr --output-dir results/
 
 # 3. Commit to version control
 git add my_config.toml

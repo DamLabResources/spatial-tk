@@ -1,5 +1,5 @@
 """
-Pytest fixtures for xenium_process tests.
+Pytest fixtures for spatial_tk tests.
 """
 
 import pytest

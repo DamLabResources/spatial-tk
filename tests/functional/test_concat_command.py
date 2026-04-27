@@ -16,7 +16,7 @@ def test_concat_command(test_samples_csv, tmp_zarr_cleanup):
     output_path = tmp_zarr_cleanup / "concat_output.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(output_path)
@@ -34,7 +34,7 @@ def test_concat_command(test_samples_csv, tmp_zarr_cleanup):
     sdata = sd.read_zarr(output_path)
     assert sdata is not None
     
-    from xenium_process.utils.helpers import get_table
+    from spatial_tk.utils.helpers import get_table
     table = get_table(sdata)
     assert table is not None
     assert table.n_obs > 0
@@ -58,7 +58,7 @@ def test_concat_with_downsampling(test_samples_csv, tmp_zarr_cleanup):
     output_path = tmp_zarr_cleanup / "concat_downsampled.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(output_path),

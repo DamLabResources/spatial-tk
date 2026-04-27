@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Configuration file utilities for xenium_process.
+Configuration file utilities for spatial_tk.
 
 This module provides functions to load and merge TOML configuration files
 with command-line arguments.

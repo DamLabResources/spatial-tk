@@ -8,15 +8,15 @@ import logging
 import sys
 from pathlib import Path
 
-from xenium_process.core.data_io import (
+from spatial_tk.core.data_io import (
     load_sample_metadata,
     load_spatial_datasets,
     concatenate_spatial_data,
     save_spatial_data
 )
-from xenium_process.core.preprocessing import downsample_cells
-from xenium_process.utils.helpers import get_table
-from xenium_process.utils.config import load_config, merge_config_with_args
+from spatial_tk.core.preprocessing import downsample_cells
+from spatial_tk.utils.helpers import get_table
+from spatial_tk.utils.config import load_config, merge_config_with_args
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -110,7 +110,7 @@ def main(args: argparse.Namespace) -> None:
         if args.downsample < 1.0:
             adata = downsample_cells(adata, args.downsample)
             # Update table in sdata
-            from xenium_process.utils.helpers import set_table
+            from spatial_tk.utils.helpers import set_table
             set_table(sdata, adata)
         
         # Save results

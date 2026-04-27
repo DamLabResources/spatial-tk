@@ -3,7 +3,7 @@ Unit tests for clustering module.
 """
 
 import pytest
-from xenium_process.core import clustering, preprocessing
+from spatial_tk.core import clustering, preprocessing
 
 
 def test_run_pca(mock_adata):

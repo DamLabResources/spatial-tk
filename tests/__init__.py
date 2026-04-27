@@ -1,4 +1,4 @@
 """
-Test suite for xenium_process package.
+Test suite for spatial_tk package.
 """
 

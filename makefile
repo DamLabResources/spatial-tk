@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "Xenium Process Makefile"
+	@echo "spatial-tk Makefile"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  make venv              - Create virtual environment with conda"
@@ -55,7 +55,7 @@ test-functional:
 
 # Run tests with coverage
 test-coverage:
-	pytest --cov=xenium_process --cov-report=html --cov-report=term --basetemp=.pytest_tmp
+	pytest --cov=spatial_tk --cov-report=html --cov-report=term --basetemp=.pytest_tmp
 	@echo "Coverage report generated in htmlcov/"
 
 # Clean up test temporary files
@@ -74,14 +74,14 @@ create-test-data:
 # Run linting
 lint:
 	@echo "Running flake8..."
-	-flake8 xenium_process/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+	-flake8 spatial_tk/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
 	@echo "Running mypy..."
-	-mypy xenium_process/ --ignore-missing-imports
+	-mypy spatial_tk/ --ignore-missing-imports
 
 # Format code
 format:
 	@echo "Formatting with black..."
-	black xenium_process/ tests/ scripts/
+	black spatial_tk/ tests/ scripts/
 
 # Clean build artifacts and caches
 clean:
@@ -129,27 +129,27 @@ run:
 	@echo "=========================================="
 	@cd "$(ROOT)" && \
 	echo "Step 1: Concatenate samples" && \
-	xenium_process concat --config "config.toml" || exit 1
+	spatial-tk concat --config "config.toml" || exit 1
 	@cd "$(ROOT)" && \
 	echo "" && \
 	echo "Step 2: Normalize data" && \
-	xenium_process normalize --config "config.toml" || exit 1
+	spatial-tk normalize --config "config.toml" || exit 1
 	@cd "$(ROOT)" && \
 	echo "" && \
 	echo "Step 3: Cluster cells" && \
-	xenium_process cluster --config "config.toml" || exit 1
+	spatial-tk cluster --config "config.toml" || exit 1
 	@cd "$(ROOT)" && \
 	echo "" && \
 	echo "Step 4: Quantitate enrichment scores" && \
-	xenium_process quantitate --config "config.toml" || exit 1
+	spatial-tk quantitate --config "config.toml" || exit 1
 	@cd "$(ROOT)" && \
 	echo "" && \
 	echo "Step 5: Assign cell type labels" && \
-	xenium_process assign --config "config.toml" || exit 1
+	spatial-tk assign --config "config.toml" || exit 1
 	@cd "$(ROOT)" && \
 	echo "" && \
 	echo "Step 6: Differential expression analysis" && \
-	xenium_process differential --config "config.toml" || exit 1
+	spatial-tk differential --config "config.toml" || exit 1
 	@echo ""
 	@echo "=========================================="
 	@echo "Pipeline completed successfully!"

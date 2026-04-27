@@ -76,7 +76,7 @@ def test_concat_with_config(test_samples_csv, test_config_file, tmp_zarr_cleanup
     
     # Use config file but override input/output with CLI
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--config', str(test_config_file),
         '--input', str(test_samples_csv),
@@ -105,7 +105,7 @@ downsample = 0.1
     output_path = tmp_zarr_cleanup / "concat_downsampled.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--config', str(config_path),
         '--input', str(test_samples_csv),
@@ -124,7 +124,7 @@ def test_normalize_with_config(test_samples_csv, tmp_zarr_cleanup):
     concat_output = tmp_zarr_cleanup / "concat_for_normalize.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(concat_output)
@@ -145,7 +145,7 @@ save_plots = false
     output_path = tmp_zarr_cleanup / "normalized_output.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'normalize',
         '--config', str(config_path),
         '--input', str(concat_output),
@@ -165,7 +165,7 @@ def test_cluster_with_config(test_samples_csv, tmp_zarr_cleanup):
     concat_output = tmp_zarr_cleanup / "concat_for_cluster.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(concat_output)
@@ -176,7 +176,7 @@ def test_cluster_with_config(test_samples_csv, tmp_zarr_cleanup):
     normalize_output = tmp_zarr_cleanup / "normalize_for_cluster.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'normalize',
         '--input', str(concat_output),
         '--output', str(normalize_output),
@@ -196,7 +196,7 @@ save_plots = false
     output_path = tmp_zarr_cleanup / "clustered_output.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'cluster',
         '--config', str(config_path),
         '--input', str(normalize_output),
@@ -223,7 +223,7 @@ downsample = 0.5
     
     # Override with CLI arg downsample = 0.8
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--config', str(config_path),
         '--input', str(test_samples_csv),
@@ -251,7 +251,7 @@ input = "test.csv"
     
     # Should still work, just won't use config
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--config', str(config_path),
         '--input', str(test_samples_csv),
@@ -276,7 +276,7 @@ input = "test.csv"  # Missing closing bracket
     output_path = tmp_zarr_cleanup / "invalid_config_output.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--config', str(config_path),
         '--input', str(test_samples_csv),
@@ -296,7 +296,7 @@ def test_nonexistent_config_file(test_samples_csv, tmp_zarr_cleanup):
     output_path = tmp_zarr_cleanup / "nonexistent_config_output.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--config', 'nonexistent_config.toml',
         '--input', str(test_samples_csv),

@@ -6,7 +6,7 @@ import pytest
 import pandas as pd
 import tempfile
 from pathlib import Path
-from xenium_process.core import data_io
+from spatial_tk.core import data_io
 
 
 def test_load_sample_metadata(test_samples_csv):
@@ -47,7 +47,7 @@ def test_load_existing_spatial_data(subsampled_zarr_path):
     assert sdata is not None
     
     # Check that table exists
-    from xenium_process.utils.helpers import get_table
+    from spatial_tk.utils.helpers import get_table
     table = get_table(sdata)
     assert table is not None
     assert table.n_obs > 0

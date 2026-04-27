@@ -1,11 +1,11 @@
-# Example TOML configuration file for xenium_process pipeline
+# Example TOML configuration file for spatial-tk pipeline
 #
 # Each command has its own section. CLI arguments override config values.
 # Use this file to make your pipelines reproducible across runs.
 #
 # Usage:
-#   xenium_process concat --config example_config.toml --input samples.csv
-#   xenium_process normalize --config example_config.toml --input merged.zarr
+#   spatial-tk concat --config example_config.toml --input samples.csv
+#   spatial-tk normalize --config example_config.toml --input merged.zarr
 #   etc.
 
 [concat]

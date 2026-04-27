@@ -18,7 +18,7 @@ def test_normalize_command(test_samples_csv, tmp_zarr_cleanup):
     concat_output = tmp_zarr_cleanup / "concat.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(concat_output)
@@ -30,7 +30,7 @@ def test_normalize_command(test_samples_csv, tmp_zarr_cleanup):
     normalize_output = tmp_zarr_cleanup / "normalized.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'normalize',
         '--input', str(concat_output),
         '--output', str(normalize_output),
@@ -42,7 +42,7 @@ def test_normalize_command(test_samples_csv, tmp_zarr_cleanup):
     
     # Verify normalization was applied
     import spatialdata as sd
-    from xenium_process.utils.helpers import get_table
+    from spatial_tk.utils.helpers import get_table
     
     sdata = sd.read_zarr(normalize_output)
     table = get_table(sdata)
@@ -60,7 +60,7 @@ def test_normalize_inplace(test_samples_csv, tmp_zarr_cleanup):
     concat_output = tmp_zarr_cleanup / "concat_inplace.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(concat_output)
@@ -70,7 +70,7 @@ def test_normalize_inplace(test_samples_csv, tmp_zarr_cleanup):
     
     # Normalize in place
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'normalize',
         '--input', str(concat_output),
         '--inplace',
@@ -81,7 +81,7 @@ def test_normalize_inplace(test_samples_csv, tmp_zarr_cleanup):
     
     # Verify that the same file was modified
     import spatialdata as sd
-    from xenium_process.utils.helpers import get_table
+    from spatial_tk.utils.helpers import get_table
     
     sdata = sd.read_zarr(concat_output)
     table = get_table(sdata)

@@ -17,11 +17,11 @@ import pandas as pd
 import scanpy as sc
 import numpy as np
 
-from xenium_process.core.data_io import load_existing_spatial_data
-from xenium_process.core import annotation
-from xenium_process.core import plotting
-from xenium_process.utils.helpers import get_table
-from xenium_process.utils.config import load_config, merge_config_with_args
+from spatial_tk.core.data_io import load_existing_spatial_data
+from spatial_tk.core import annotation
+from spatial_tk.core import plotting
+from spatial_tk.utils.helpers import get_table
+from spatial_tk.utils.config import load_config, merge_config_with_args
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
