@@ -11,6 +11,7 @@ from typing import Optional
 
 import spatialdata as sd
 import anndata as ad
+import pandas as pd
 
 
 def setup_logging(level: int = logging.INFO):
@@ -69,6 +70,40 @@ def prepare_spatial_data_for_save(adata: ad.AnnData) -> None:
     Args:
         adata: AnnData object to prepare
     """
+    def _coerce_scalar(value):
+        if isinstance(value, (list, tuple)):
+            if len(value) == 0:
+                return ""
+            return _coerce_scalar(value[0])
+        # Handles numpy arrays and pandas array scalars without importing numpy.
+        if hasattr(value, "tolist") and not isinstance(value, (str, bytes)):
+            converted = value.tolist()
+            if isinstance(converted, list):
+                if len(converted) == 0:
+                    return ""
+                return _coerce_scalar(converted[0])
+            return converted
+        return value
+
+    # SpatialData requires these keys to be categorical and hashable scalars.
+    for required_col in ["region", "instance_id"]:
+        if required_col in adata.obs:
+            adata.obs[required_col] = adata.obs[required_col].map(_coerce_scalar)
+            adata.obs[required_col] = pd.Categorical(adata.obs[required_col])
+
+    # SpatialData validation expects hashable iterables in uns metadata.
+    spatial_attrs = adata.uns.get("spatialdata_attrs")
+    if isinstance(spatial_attrs, dict) and "region" in spatial_attrs:
+        region_meta = spatial_attrs["region"]
+        if hasattr(region_meta, "tolist"):
+            region_meta = region_meta.tolist()
+        if isinstance(region_meta, (tuple, set)):
+            region_meta = list(region_meta)
+        if isinstance(region_meta, list):
+            spatial_attrs["region"] = [_coerce_scalar(v) for v in region_meta]
+        else:
+            spatial_attrs["region"] = [_coerce_scalar(region_meta)]
+
     categorical_cols = adata.obs.select_dtypes(include=['category']).columns
     for col in categorical_cols:
         # Keep region and instance_id as categorical (required by SpatialData)
