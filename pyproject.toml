@@ -3,7 +3,7 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "xenium-process"
+name = "spatial-tk"
 version = "0.1.0"
 description = "A comprehensive toolkit for analyzing Xenium spatial transcriptomics data"
 readme = "README.md"
@@ -63,18 +63,18 @@ dev = [
 ]
 
 [project.scripts]
-xenium_process = "xenium_process.cli:main"
+spatial-tk = "spatial_tk.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/hope-lab/xenium-process"
-Repository = "https://github.com/hope-lab/xenium-process"
-Documentation = "https://github.com/hope-lab/xenium-process/blob/main/README.md"
+Homepage = "https://github.com/DamLabResources/spatial-tk"
+Repository = "https://github.com/DamLabResources/spatial-tk"
+Documentation = "https://github.com/DamLabResources/spatial-tk/blob/main/README.md"
 
 [tool.setuptools]
-packages = ["xenium_process", "xenium_process.commands", "xenium_process.core", "xenium_process.utils"]
+packages = ["spatial_tk", "spatial_tk.commands", "spatial_tk.core", "spatial_tk.utils"]
 
 [tool.setuptools.package-data]
-xenium_process = ["py.typed"]
+spatial_tk = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

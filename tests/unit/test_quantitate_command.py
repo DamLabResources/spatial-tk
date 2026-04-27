@@ -41,11 +41,11 @@ _MOCK_NET_DF = pd.DataFrame(
 )
 
 _COMMON_PATCHES = [
-    "xenium_process.commands.quantitate.load_existing_spatial_data",
-    "xenium_process.commands.quantitate.save_spatial_data",
-    "xenium_process.commands.quantitate.set_table",
-    "xenium_process.commands.quantitate.prepare_spatial_data_for_save",
-    "xenium_process.commands.quantitate.get_output_path",
+    "spatial_tk.commands.quantitate.load_existing_spatial_data",
+    "spatial_tk.commands.quantitate.save_spatial_data",
+    "spatial_tk.commands.quantitate.set_table",
+    "spatial_tk.commands.quantitate.prepare_spatial_data_for_save",
+    "spatial_tk.commands.quantitate.get_output_path",
 ]
 
 
@@ -55,19 +55,19 @@ def _run_main_with_patches(args, extra_patches=None):
 
     Returns a dict mapping patch target → Mock for assertions.
     """
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     all_patches = _COMMON_PATCHES + (extra_patches or [])
 
     mocks = {}
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls:
         # Make Path(anything).exists() return True
         mock_path_instance = MagicMock()
         mock_path_instance.exists.return_value = True
         mock_path_instance.__truediv__ = lambda self, other: self  # plots_dir / "..."
         mock_path_cls.return_value = mock_path_instance
 
-        with patch.multiple("xenium_process.commands.quantitate", **{p.split(".")[-1]: MagicMock() for p in _COMMON_PATCHES}):
+        with patch.multiple("spatial_tk.commands.quantitate", **{p.split(".")[-1]: MagicMock() for p in _COMMON_PATCHES}):
             mock_sdata = MagicMock()
             mock_adata = MagicMock()
             mock_adata.n_obs = 100
@@ -75,16 +75,16 @@ def _run_main_with_patches(args, extra_patches=None):
             mock_adata.var_names = [f"gene_{i}" for i in range(300)]
             mock_adata.obsm = {}
 
-            with patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-                 patch("xenium_process.commands.quantitate.save_spatial_data"), \
-                 patch("xenium_process.commands.quantitate.set_table"), \
-                 patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-                 patch("xenium_process.commands.quantitate.get_output_path") as mock_out:
+            with patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+                 patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+                 patch("spatial_tk.commands.quantitate.set_table"), \
+                 patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+                 patch("spatial_tk.commands.quantitate.get_output_path") as mock_out:
                 mock_load.return_value = mock_sdata
                 mock_out.return_value = mock_path_instance
 
-                from xenium_process.commands.quantitate import get_table as _gt
-                with patch("xenium_process.commands.quantitate.get_table") as mock_get_table:
+                from spatial_tk.commands.quantitate import get_table as _gt
+                with patch("spatial_tk.commands.quantitate.get_table") as mock_get_table:
                     mock_get_table.return_value = mock_adata
 
                     try:
@@ -101,22 +101,22 @@ def _run_main_with_patches(args, extra_patches=None):
 
 def test_quantitate_custom_markers_calls_run_scoring():
     """Given --markers, run_enrichment_scoring is called with the marker DataFrame."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(markers="markers.csv")
 
     mock_markers = {"T cells": ["CD3D", "CD3E"]}
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
-         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("spatial_tk.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -147,20 +147,20 @@ def test_quantitate_custom_markers_calls_run_scoring():
 
 def test_quantitate_custom_score_key_passed_through():
     """--score-key fibroblasts is forwarded to run_enrichment_scoring."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(markers="markers.csv", score_key="fibroblasts")
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
-         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("spatial_tk.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -188,20 +188,20 @@ def test_quantitate_custom_score_key_passed_through():
 
 def test_quantitate_method_mlm_default():
     """Without --method, run_enrichment_scoring is called with method='mlm'."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(markers="markers.csv")  # default method="mlm"
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
-         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("spatial_tk.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -229,20 +229,20 @@ def test_quantitate_method_mlm_default():
 
 def test_quantitate_method_ulm():
     """--method ulm is forwarded to run_enrichment_scoring."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(markers="markers.csv", method="ulm")
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
-         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("spatial_tk.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -270,20 +270,20 @@ def test_quantitate_method_ulm():
 
 def test_quantitate_tmin_default():
     """Default tmin=2 is passed to run_enrichment_scoring."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(markers="markers.csv")
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
-         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("spatial_tk.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -311,20 +311,20 @@ def test_quantitate_tmin_default():
 
 def test_quantitate_tmin_custom():
     """--tmin 1 is forwarded to run_enrichment_scoring."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(markers="markers.csv", tmin=1)
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
-         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("spatial_tk.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -352,23 +352,23 @@ def test_quantitate_tmin_custom():
 
 def test_quantitate_filter_obs_parsed_and_passed():
     """--filter-obs causes filter_cells_by_obs to be called before scoring."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(markers="markers.csv", filter_obs="cell_type==Fibroblast")
 
     mock_mask = MagicMock()
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.filter_cells_by_obs") as mock_filter, \
-         patch("xenium_process.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
-         patch("xenium_process.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.filter_cells_by_obs") as mock_filter, \
+         patch("spatial_tk.commands.quantitate.annotation.load_marker_genes") as mock_load_markers, \
+         patch("spatial_tk.commands.quantitate.annotation.markers_dict_to_dataframe") as mock_to_df, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -401,21 +401,21 @@ def test_quantitate_filter_obs_parsed_and_passed():
 
 def test_quantitate_preset_resources_calls_load_preset():
     """--preset-resources panglao,hallmark: load_preset_resource called twice; run_enrichment_scoring called for each."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(preset_resources="panglao,hallmark")  # no custom markers
 
     mock_net = MagicMock()
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_preset_resource") as mock_load_preset, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_preset_resource") as mock_load_preset, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -448,19 +448,19 @@ def test_quantitate_preset_resources_calls_load_preset():
 
 def test_quantitate_panglao_sensitivity_passed():
     """--panglao-min-sensitivity 0.7 is forwarded to load_preset_resource."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args(preset_resources="panglao", panglao_min_sensitivity=0.7)
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table, \
-         patch("xenium_process.commands.quantitate.annotation.load_preset_resource") as mock_load_preset, \
-         patch("xenium_process.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.quantitate.annotation.load_preset_resource") as mock_load_preset, \
+         patch("spatial_tk.commands.quantitate.annotation.run_enrichment_scoring") as mock_score:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -488,17 +488,17 @@ def test_quantitate_panglao_sensitivity_passed():
 
 def test_quantitate_no_markers_no_preset_exits():
     """Neither --markers nor --preset-resources → sys.exit(1)."""
-    from xenium_process.commands import quantitate
+    from spatial_tk.commands import quantitate
 
     args = _make_args()  # both None by default
 
-    with patch("xenium_process.commands.quantitate.Path") as mock_path_cls, \
-         patch("xenium_process.commands.quantitate.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.quantitate.save_spatial_data"), \
-         patch("xenium_process.commands.quantitate.set_table"), \
-         patch("xenium_process.commands.quantitate.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.quantitate.get_output_path") as mock_out, \
-         patch("xenium_process.commands.quantitate.get_table") as mock_get_table:
+    with patch("spatial_tk.commands.quantitate.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.quantitate.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.quantitate.save_spatial_data"), \
+         patch("spatial_tk.commands.quantitate.set_table"), \
+         patch("spatial_tk.commands.quantitate.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.quantitate.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.quantitate.get_table") as mock_get_table:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True

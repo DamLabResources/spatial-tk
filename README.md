@@ -1,4 +1,4 @@
-# Xenium Process: Spatial Transcriptomics Analysis Toolkit
+# spatial-tk: Spatial Transcriptomics Analysis Toolkit
 
 A comprehensive modular Python toolkit for Xenium spatial transcriptomics analysis. This package provides a command-line interface with separate subcommands for each stage of the analysis pipeline, enabling flexible and efficient processing of spatial transcriptomics data.
 
@@ -46,8 +46,8 @@ All commands support TOML configuration files for reproducible pipelines. Each c
 
 ```bash
 # Use a config file
-xenium_process concat --config config.toml --input samples.csv --output merged.zarr
-xenium_process normalize --config config.toml --input merged.zarr --inplace
+spatial-tk concat --config config.toml --input samples.csv --output merged.zarr
+spatial-tk normalize --config config.toml --input merged.zarr --inplace
 ```
 
 ### Config File Format
@@ -102,7 +102,7 @@ When both a config file and CLI arguments are provided, CLI arguments take prece
 
 ```bash
 # Config specifies downsample = 0.5, but CLI overrides it to 0.8
-xenium_process concat --config config.toml --input samples.csv --output merged.zarr --downsample 0.8
+spatial-tk concat --config config.toml --input samples.csv --output merged.zarr --downsample 0.8
 ```
 
 ### Example Config File
@@ -111,32 +111,32 @@ See `example_config.toml` in the repository root for a complete example with all
 
 ```bash
 # 1. Concatenate multiple samples
-xenium_process concat --input samples.csv --output merged.zarr
+spatial-tk concat --input samples.csv --output merged.zarr
 
 # 2. Normalize (inplace to save space)
-xenium_process normalize --input merged.zarr --inplace
+spatial-tk normalize --input merged.zarr --inplace
 
 # 3. Cluster with multiple resolutions
-xenium_process cluster --input merged.zarr --inplace --leiden-resolution 0.2,0.5,1.0
+spatial-tk cluster --input merged.zarr --inplace --leiden-resolution 0.2,0.5,1.0
 
 # 4. Annotate cell types
-xenium_process annotate --input merged.zarr --inplace --markers markers.csv
+spatial-tk annotate --input merged.zarr --inplace --markers markers.csv
 
 # 5. Differential expression analysis
-xenium_process differential --input merged.zarr --output-dir results/ --groupby leiden_res0p5
+spatial-tk differential --input merged.zarr --output-dir results/ --groupby leiden_res0p5
 ```
 
 ## Commands
 
-### `xenium_process concat`
+### `spatial-tk concat`
 
 Concatenate multiple Xenium .zarr files into a single dataset.
 
 ```bash
-xenium_process concat --input samples.csv --output merged.zarr
+spatial-tk concat --input samples.csv --output merged.zarr
 
 # With downsampling for testing
-xenium_process concat --input samples.csv --output merged.zarr --downsample 0.1
+spatial-tk concat --input samples.csv --output merged.zarr --downsample 0.1
 ```
 
 **Arguments:**
@@ -152,19 +152,19 @@ sample1,/path/to/sample1.zarr,HIV,Drexel
 sample2,/path/to/sample2.zarr,NEG,OSU
 ```
 
-### `xenium_process normalize`
+### `spatial-tk normalize`
 
 Perform QC, filtering, normalization, and feature selection.
 
 ```bash
 # Save to new file
-xenium_process normalize --input data.zarr --output normalized.zarr
+spatial-tk normalize --input data.zarr --output normalized.zarr
 
 # Modify in place
-xenium_process normalize --input data.zarr --inplace
+spatial-tk normalize --input data.zarr --inplace
 
 # With custom parameters and plots
-xenium_process normalize --input data.zarr --inplace \
+spatial-tk normalize --input data.zarr --inplace \
   --min-genes 200 \
   --min-cells 5 \
   --n-top-genes 3000 \
@@ -181,16 +181,16 @@ xenium_process normalize --input data.zarr --inplace \
 - `--save-plots`: Generate QC plots
 - `--config`: Path to TOML configuration file (optional)
 
-### `xenium_process cluster`
+### `spatial-tk cluster`
 
 Perform PCA, neighbor graph computation, UMAP, and Leiden clustering.
 
 ```bash
 # Single resolution
-xenium_process cluster --input data.zarr --inplace --leiden-resolution 0.5
+spatial-tk cluster --input data.zarr --inplace --leiden-resolution 0.5
 
 # Multiple resolutions with plots
-xenium_process cluster --input data.zarr --inplace \
+spatial-tk cluster --input data.zarr --inplace \
   --leiden-resolution 0.2,0.5,1.0,2.0 \
   --save-plots
 ```
@@ -203,22 +203,22 @@ xenium_process cluster --input data.zarr --inplace \
 - `--save-plots`: Generate UMAP plots
 - `--config`: Path to TOML configuration file (optional)
 
-### `xenium_process annotate`
+### `spatial-tk annotate`
 
 Annotate cell types using marker genes and/or MLM scoring.
 
 ```bash
 # Basic annotation with markers
-xenium_process annotate --input data.zarr --inplace --markers markers.csv
+spatial-tk annotate --input data.zarr --inplace --markers markers.csv
 
 # With MLM enrichment scores
-xenium_process annotate --input data.zarr --inplace \
+spatial-tk annotate --input data.zarr --inplace \
   --markers markers.csv \
   --calculate-ulm \
   --save-plots
 
 # Annotate specific clustering
-xenium_process annotate --input data.zarr --inplace \
+spatial-tk annotate --input data.zarr --inplace \
   --markers markers.csv \
   --cluster-key leiden_res1p0
 ```
@@ -242,7 +242,7 @@ xenium_process annotate --input data.zarr --inplace \
 - **progeny**: PROGENy pathway activities
 - **PanglaoDB**: Filtered cell type markers
 
-### `xenium_process differential`
+### `spatial-tk differential`
 
 Differential expression analysis with two modes:
 
@@ -251,20 +251,20 @@ Differential expression analysis with two modes:
 
 ```bash
 # Mode B: Find markers for all clusters
-xenium_process differential \
+spatial-tk differential \
   --input data.zarr \
   --output-dir results/ \
   --groupby leiden_res0p5
 
 # Mode A: Compare two groups
-xenium_process differential \
+spatial-tk differential \
   --input data.zarr \
   --output-dir results/ \
   --groupby status \
   --compare-groups HIV,NEG
 
 # With obsm enrichment scores
-xenium_process differential \
+spatial-tk differential \
   --input data.zarr \
   --output-dir results/ \
   --groupby status \
@@ -273,7 +273,7 @@ xenium_process differential \
   --save-plots
 
 # Compare cell types
-xenium_process differential \
+spatial-tk differential \
   --input data.zarr \
   --output-dir results/ \
   --groupby cell_type_res0p5 \
@@ -299,45 +299,45 @@ xenium_process differential \
 ```bash
 # Create config.toml with your settings
 # Then run pipeline with config
-xenium_process concat --config config.toml --input samples.csv --output data.zarr
-xenium_process normalize --config config.toml --input data.zarr --inplace
-xenium_process cluster --config config.toml --input data.zarr --inplace
-xenium_process annotate --config config.toml --input data.zarr --inplace
-xenium_process differential --config config.toml --input data.zarr --output-dir results/
+spatial-tk concat --config config.toml --input samples.csv --output data.zarr
+spatial-tk normalize --config config.toml --input data.zarr --inplace
+spatial-tk cluster --config config.toml --input data.zarr --inplace
+spatial-tk annotate --config config.toml --input data.zarr --inplace
+spatial-tk differential --config config.toml --input data.zarr --output-dir results/
 ```
 
 ### Full Pipeline (In-place to Save Space)
 
 ```bash
 # Step 1: Concatenate samples
-xenium_process concat --input samples.csv --output data.zarr
+spatial-tk concat --input samples.csv --output data.zarr
 
 # Step 2-5: Process in place
-xenium_process normalize --input data.zarr --inplace --save-plots
-xenium_process cluster --input data.zarr --inplace --leiden-resolution 0.5,1.0 --save-plots
-xenium_process annotate --input data.zarr --inplace --markers markers.csv --calculate-ulm --save-plots
-xenium_process differential --input data.zarr --output-dir results/ --groupby leiden_res0p5 --save-plots
+spatial-tk normalize --input data.zarr --inplace --save-plots
+spatial-tk cluster --input data.zarr --inplace --leiden-resolution 0.5,1.0 --save-plots
+spatial-tk annotate --input data.zarr --inplace --markers markers.csv --calculate-ulm --save-plots
+spatial-tk differential --input data.zarr --output-dir results/ --groupby leiden_res0p5 --save-plots
 ```
 
 ### Separate Files for Each Step
 
 ```bash
-xenium_process concat --input samples.csv --output step1_concat.zarr
-xenium_process normalize --input step1_concat.zarr --output step2_normalized.zarr
-xenium_process cluster --input step2_normalized.zarr --output step3_clustered.zarr
-xenium_process annotate --input step3_clustered.zarr --output step4_annotated.zarr
-xenium_process differential --input step4_annotated.zarr --output-dir results/
+spatial-tk concat --input samples.csv --output step1_concat.zarr
+spatial-tk normalize --input step1_concat.zarr --output step2_normalized.zarr
+spatial-tk cluster --input step2_normalized.zarr --output step3_clustered.zarr
+spatial-tk annotate --input step3_clustered.zarr --output step4_annotated.zarr
+spatial-tk differential --input step4_annotated.zarr --output-dir results/
 ```
 
 ### Compare Disease Status
 
 ```bash
 # Process and normalize
-xenium_process concat --input samples.csv --output data.zarr
-xenium_process normalize --input data.zarr --inplace
+spatial-tk concat --input samples.csv --output data.zarr
+spatial-tk normalize --input data.zarr --inplace
 
 # Compare HIV vs NEG
-xenium_process differential \
+spatial-tk differential \
   --input data.zarr \
   --output-dir hiv_vs_neg/ \
   --groupby status \
@@ -348,16 +348,16 @@ xenium_process differential \
 ### Multi-Resolution Analysis
 
 ```bash
-xenium_process concat --input samples.csv --output data.zarr
-xenium_process normalize --input data.zarr --inplace
-xenium_process cluster --input data.zarr --inplace --leiden-resolution 0.2,0.5,1.0,2.0
+spatial-tk concat --input samples.csv --output data.zarr
+spatial-tk normalize --input data.zarr --inplace
+spatial-tk cluster --input data.zarr --inplace --leiden-resolution 0.2,0.5,1.0,2.0
 
 # Annotate all resolutions
-xenium_process annotate --input data.zarr --inplace --markers markers.csv --save-plots
+spatial-tk annotate --input data.zarr --inplace --markers markers.csv --save-plots
 
 # Differential analysis for each resolution
 for res in 0p2 0p5 1p0 2p0; do
-  xenium_process differential \
+  spatial-tk differential \
     --input data.zarr \
     --output-dir results_res${res}/ \
     --groupby leiden_res${res}
@@ -406,7 +406,7 @@ pytest tests/unit/
 pytest tests/functional/
 
 # Run with coverage
-pytest --cov=xenium_process --cov-report=html
+pytest --cov=spatial_tk --cov-report=html
 ```
 
 ### Creating Test Data
@@ -425,7 +425,7 @@ python scripts/create_test_data.py \
 python -m build
 
 # Install locally
-pip install dist/xenium_process-*.whl
+pip install dist/spatial_tk-*.whl
 ```
 
 ## Marker Gene CSV Format
@@ -447,8 +447,8 @@ Macrophages,CD14
 The package can also be used programmatically:
 
 ```python
-from xenium_process.core import data_io, preprocessing, clustering, annotation
-from xenium_process.utils.helpers import get_table, set_table
+from spatial_tk.core import data_io, preprocessing, clustering, annotation
+from spatial_tk.utils.helpers import get_table, set_table
 
 # Load data
 sdata = data_io.load_existing_spatial_data("data.zarr")

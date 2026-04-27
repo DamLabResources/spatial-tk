@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Main CLI entry point for xenium_process.
+Main CLI entry point for spatial-tk.
 
 This module provides the command-line interface for the Xenium spatial
 transcriptomics processing pipeline.
@@ -13,8 +13,8 @@ import warnings
 # Suppress warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-from xenium_process.commands import concat, normalize, cluster, quantitate, assign, differential
-from xenium_process.utils.helpers import setup_logging
+from spatial_tk.commands import concat, normalize, cluster, quantitate, assign, differential
+from spatial_tk.utils.helpers import setup_logging
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -25,45 +25,45 @@ def create_parser() -> argparse.ArgumentParser:
         Configured ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        prog='xenium_process',
+        prog='spatial-tk',
         description='Xenium Spatial Transcriptomics Processing Pipeline',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Concatenate multiple samples
-  xenium_process concat --input samples.csv --output merged.zarr
+  spatial-tk concat --input samples.csv --output merged.zarr
   
   # Normalize (in place to save space)
-  xenium_process normalize --input merged.zarr --inplace --save-plots
+  spatial-tk normalize --input merged.zarr --inplace --save-plots
   
   # Cluster with multiple resolutions
-  xenium_process cluster --input merged.zarr --inplace --leiden-resolution 0.2,0.5,1.0
+  spatial-tk cluster --input merged.zarr --inplace --leiden-resolution 0.2,0.5,1.0
   
   # Score enrichment with a custom marker list (all cells)
-  xenium_process quantitate --input clustered.zarr --inplace --markers markers.csv
+  spatial-tk quantitate --input clustered.zarr --inplace --markers markers.csv
 
   # Score only fibroblasts against a custom list, plus built-in PanglaoDB
-  xenium_process quantitate --input clustered.zarr --inplace \\
+  spatial-tk quantitate --input clustered.zarr --inplace \\
       --markers markers.csv --filter-obs "cell_type==Fibroblast" \\
       --preset-resources panglao
 
   # Assign cell type labels to clusters from the computed scores
-  xenium_process assign --input clustered.zarr --inplace \\
+  spatial-tk assign --input clustered.zarr --inplace \\
       --score-key score_mlm_custom
 
   # Differential analysis between groups
-  xenium_process differential --input annotated.zarr --output-dir results/ \\
+  spatial-tk differential --input annotated.zarr --output-dir results/ \\
       --groupby status --compare-groups HIV,NEG
   
   # Full pipeline (separate files)
-  xenium_process concat --input samples.csv --output step1_concat.zarr
-  xenium_process normalize --input step1_concat.zarr --output step2_normalized.zarr
-  xenium_process cluster --input step2_normalized.zarr --output step3_clustered.zarr
-  xenium_process quantitate --input step3_clustered.zarr --output step4_scored.zarr \\
+  spatial-tk concat --input samples.csv --output step1_concat.zarr
+  spatial-tk normalize --input step1_concat.zarr --output step2_normalized.zarr
+  spatial-tk cluster --input step2_normalized.zarr --output step3_clustered.zarr
+  spatial-tk quantitate --input step3_clustered.zarr --output step4_scored.zarr \\
       --markers markers.csv
-  xenium_process assign --input step4_scored.zarr --output step5_annotated.zarr \\
+  spatial-tk assign --input step4_scored.zarr --output step5_annotated.zarr \\
       --score-key score_mlm_custom
-  xenium_process differential --input step5_annotated.zarr --output-dir results/
+  spatial-tk differential --input step5_annotated.zarr --output-dir results/
         """
     )
     

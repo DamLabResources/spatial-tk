@@ -8,16 +8,16 @@ import logging
 import sys
 from pathlib import Path
 
-from xenium_process.core.data_io import (
+from spatial_tk.core.data_io import (
     load_existing_spatial_data, 
     save_spatial_data,
     load_table_only,
     save_table_only
 )
-from xenium_process.core import preprocessing
-from xenium_process.core import plotting
-from xenium_process.utils.helpers import get_table, set_table, get_output_path, prepare_spatial_data_for_save
-from xenium_process.utils.config import load_config, merge_config_with_args
+from spatial_tk.core import preprocessing
+from spatial_tk.core import plotting
+from spatial_tk.utils.helpers import get_table, set_table, get_output_path, prepare_spatial_data_for_save
+from spatial_tk.utils.config import load_config, merge_config_with_args
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:

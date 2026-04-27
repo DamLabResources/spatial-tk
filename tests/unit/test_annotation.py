@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import pandas as pd
 import anndata as ad
-from xenium_process.core import annotation
+from spatial_tk.core import annotation
 
 
 def test_load_marker_genes(test_markers_csv):

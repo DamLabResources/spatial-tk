@@ -28,7 +28,7 @@ def test_full_pipeline_end_to_end(test_samples_csv, test_markers_csv, tmp_zarr_c
     
     # Step 1: Concat
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(concat_output)
@@ -39,7 +39,7 @@ def test_full_pipeline_end_to_end(test_samples_csv, test_markers_csv, tmp_zarr_c
     
     # Step 2: Normalize (inplace)
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'normalize',
         '--input', str(concat_output),
         '--inplace',
@@ -50,7 +50,7 @@ def test_full_pipeline_end_to_end(test_samples_csv, test_markers_csv, tmp_zarr_c
     
     # Step 3: Cluster (inplace)
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'cluster',
         '--input', str(concat_output),
         '--inplace',
@@ -61,7 +61,7 @@ def test_full_pipeline_end_to_end(test_samples_csv, test_markers_csv, tmp_zarr_c
     
     # Step 4: Quantitate – score cells against the marker gene list (inplace)
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'quantitate',
         '--input', str(concat_output),
         '--inplace',
@@ -73,7 +73,7 @@ def test_full_pipeline_end_to_end(test_samples_csv, test_markers_csv, tmp_zarr_c
 
     # Step 5: Assign – label clusters from the scored obsm matrix (inplace)
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'assign',
         '--input', str(concat_output),
         '--inplace',
@@ -86,7 +86,7 @@ def test_full_pipeline_end_to_end(test_samples_csv, test_markers_csv, tmp_zarr_c
     # Step 6: Differential analysis
     diff_output_dir = tmp_zarr_cleanup / "differential"
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'differential',
         '--input', str(concat_output),
         '--output-dir', str(diff_output_dir),
@@ -113,7 +113,7 @@ def test_pipeline_with_group_comparison(test_samples_csv, tmp_zarr_cleanup):
     concat_output = tmp_zarr_cleanup / "concat.zarr"
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'concat',
         '--input', str(test_samples_csv),
         '--output', str(concat_output)
@@ -122,7 +122,7 @@ def test_pipeline_with_group_comparison(test_samples_csv, tmp_zarr_cleanup):
     assert result.returncode == 0
     
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'normalize',
         '--input', str(concat_output),
         '--inplace',
@@ -134,7 +134,7 @@ def test_pipeline_with_group_comparison(test_samples_csv, tmp_zarr_cleanup):
     # Run differential analysis comparing status groups
     diff_output_dir = tmp_zarr_cleanup / "differential_status"
     result = subprocess.run([
-        sys.executable, '-m', 'xenium_process.cli',
+        sys.executable, '-m', 'spatial_tk.cli',
         'differential',
         '--input', str(concat_output),
         '--output-dir', str(diff_output_dir),

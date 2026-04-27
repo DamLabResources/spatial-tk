@@ -5,6 +5,12 @@ All notable changes to the Xenium Spatial Clustering and Annotation Tool will be
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed (breaking)
+
+- Renamed the Python package from `xenium_process` to `spatial_tk`, the distribution/PyPI name from `xenium-process` to `spatial-tk`, and the CLI entry point from `xenium_process` to `spatial-tk`. Run `pip install spatial-tk` (or install from source) and invoke `spatial-tk ...` or `python -m spatial_tk.cli ...`.
+
 ## [1.3.0] - 2025-11-09
 
 ### Added
@@ -84,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `notes/TOML_CONFIG_GUIDE.md` - Comprehensive guide to TOML config files
   - `notes/MAKEFILE_RUN_TARGET.md` - Documentation for the make run target
 - **Config Utility Module**:
-  - `xenium_process/utils/config.py` with `load_config()` and `merge_config_with_args()` functions
+  - `spatial_tk/utils/config.py` with `load_config()` and `merge_config_with_args()` functions
   - Uses Python 3.11+ built-in `tomllib` module (no additional dependencies)
   - Handles config loading, merging with CLI args, and type conversion
 

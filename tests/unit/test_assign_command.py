@@ -35,7 +35,7 @@ def _make_args(**overrides):
 
 def _run_assign(args):
     """Run assign.main(args) with all common I/O mocked; returns mock_adata."""
-    from xenium_process.commands import assign
+    from spatial_tk.commands import assign
 
     mock_sdata = MagicMock()
     mock_adata = MagicMock()
@@ -45,15 +45,15 @@ def _run_assign(args):
     mock_adata.obsm = {args.score_key: MagicMock()}
     mock_adata.obs.columns = ["leiden_res0p5", "leiden_res1p0"]
 
-    with patch("xenium_process.commands.assign.Path") as mock_path_cls, \
-         patch("xenium_process.commands.assign.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.assign.save_spatial_data"), \
-         patch("xenium_process.commands.assign.set_table"), \
-         patch("xenium_process.commands.assign.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.assign.get_output_path") as mock_out, \
-         patch("xenium_process.commands.assign.get_table") as mock_get_table, \
-         patch("xenium_process.commands.assign.annotation.assign_clusters") as mock_assign_clusters, \
-         patch("xenium_process.commands.assign.annotation.run_differential_expression") as mock_de:
+    with patch("spatial_tk.commands.assign.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.assign.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.assign.save_spatial_data"), \
+         patch("spatial_tk.commands.assign.set_table"), \
+         patch("spatial_tk.commands.assign.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.assign.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.assign.get_table") as mock_get_table, \
+         patch("spatial_tk.commands.assign.annotation.assign_clusters") as mock_assign_clusters, \
+         patch("spatial_tk.commands.assign.annotation.run_differential_expression") as mock_de:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True
@@ -154,7 +154,7 @@ def test_assign_de_skipped_when_disabled():
 
 def test_assign_missing_score_key_exits():
     """When obsm does not contain the score key, main() exits with code 1."""
-    from xenium_process.commands import assign
+    from spatial_tk.commands import assign
 
     args = _make_args(score_key="score_mlm_nonexistent")
 
@@ -163,13 +163,13 @@ def test_assign_missing_score_key_exits():
     mock_adata.obsm = {}  # score key absent
     mock_adata.obs.columns = ["leiden_res0p5"]
 
-    with patch("xenium_process.commands.assign.Path") as mock_path_cls, \
-         patch("xenium_process.commands.assign.load_existing_spatial_data") as mock_load, \
-         patch("xenium_process.commands.assign.save_spatial_data"), \
-         patch("xenium_process.commands.assign.set_table"), \
-         patch("xenium_process.commands.assign.prepare_spatial_data_for_save"), \
-         patch("xenium_process.commands.assign.get_output_path") as mock_out, \
-         patch("xenium_process.commands.assign.get_table") as mock_get_table:
+    with patch("spatial_tk.commands.assign.Path") as mock_path_cls, \
+         patch("spatial_tk.commands.assign.load_existing_spatial_data") as mock_load, \
+         patch("spatial_tk.commands.assign.save_spatial_data"), \
+         patch("spatial_tk.commands.assign.set_table"), \
+         patch("spatial_tk.commands.assign.prepare_spatial_data_for_save"), \
+         patch("spatial_tk.commands.assign.get_output_path") as mock_out, \
+         patch("spatial_tk.commands.assign.get_table") as mock_get_table:
 
         mock_path_obj = MagicMock()
         mock_path_obj.exists.return_value = True

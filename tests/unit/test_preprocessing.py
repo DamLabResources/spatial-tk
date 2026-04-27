@@ -4,7 +4,7 @@ Unit tests for preprocessing module.
 
 import pytest
 import numpy as np
-from xenium_process.core import preprocessing
+from spatial_tk.core import preprocessing
 
 
 def test_calculate_qc_metrics(mock_adata):

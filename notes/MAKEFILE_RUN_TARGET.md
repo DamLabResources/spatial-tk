@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `make run` target provides a convenient way to execute the full xenium_process pipeline using a single TOML configuration file.
+The `make run` target provides a convenient way to execute the full spatial-tk pipeline using a single TOML configuration file.
 
 ## Usage
 
