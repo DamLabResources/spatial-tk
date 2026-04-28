@@ -11,7 +11,7 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, HDBSCAN
 from sklearn.metrics import silhouette_score
 
 
@@ -114,6 +114,7 @@ def run_spatial_kmeans(
     best_labels = labels_by_n_clusters[str(best_n_clusters)]
 
     return {
+        "mode": "kmeans",
         "n_clusters": tested_clusters,
         "silhouette_scores": silhouette_scores,
         "inertia": inertia_values,
@@ -124,6 +125,55 @@ def run_spatial_kmeans(
         "selection_method": "forced" if force_n_clusters is not None else "silhouette_max",
         "force_n_clusters": int(force_n_clusters) if force_n_clusters is not None else None,
         "best_labels": best_labels,
+    }
+
+
+def run_spatial_hdbscan(
+    composition: np.ndarray,
+    min_cluster_size: int = 5,
+    min_samples: Optional[int] = None,
+    cluster_selection_epsilon: float = 0.0,
+    metric: str = "euclidean",
+    allow_single_cluster: bool = False,
+) -> Dict[str, Any]:
+    """
+    Run sklearn HDBSCAN on neighborhood composition vectors.
+    """
+    model = HDBSCAN(
+        min_cluster_size=min_cluster_size,
+        min_samples=min_samples,
+        cluster_selection_epsilon=cluster_selection_epsilon,
+        metric=metric,
+        allow_single_cluster=allow_single_cluster,
+    )
+    labels = model.fit_predict(composition).astype(int)
+
+    non_noise = labels != -1
+    non_noise_labels = labels[non_noise]
+    unique_non_noise = np.unique(non_noise_labels) if np.any(non_noise) else np.array([])
+    n_clusters_found = int(len(unique_non_noise))
+    n_noise = int(np.sum(labels == -1))
+    noise_fraction = float(n_noise / len(labels)) if len(labels) else 0.0
+
+    silhouette = None
+    if n_clusters_found >= 2 and np.sum(non_noise) >= 2:
+        silhouette = float(silhouette_score(composition[non_noise], non_noise_labels))
+
+    return {
+        "mode": "hdbscan",
+        "best_labels": labels.tolist(),
+        "labels": labels.tolist(),
+        "n_clusters_found": n_clusters_found,
+        "n_noise": n_noise,
+        "noise_fraction": noise_fraction,
+        "silhouette_score": silhouette,
+        "hdbscan_params": {
+            "min_cluster_size": int(min_cluster_size),
+            "min_samples": None if min_samples is None else int(min_samples),
+            "cluster_selection_epsilon": float(cluster_selection_epsilon),
+            "metric": metric,
+            "allow_single_cluster": bool(allow_single_cluster),
+        },
     }
 
 
@@ -146,11 +196,12 @@ def store_spatial_cluster_results(
     params: Dict[str, Any],
     composition: np.ndarray,
     categories: list[str],
-    kmeans_results: Dict[str, Any],
+    cluster_results: Dict[str, Any],
     store_composition_in_obsm: bool = True,
 ) -> ad.AnnData:
     """Store selected labels in obs and detailed run outputs in uns."""
-    best_labels = np.asarray(kmeans_results["best_labels"], dtype=int)
+    mode = cluster_results.get("mode", "kmeans")
+    best_labels = np.asarray(cluster_results["best_labels"], dtype=int)
     adata.obs[output_key] = pd.Categorical(best_labels.astype(str))
 
     composition_key = f"{results_key}_composition"
@@ -159,23 +210,41 @@ def store_spatial_cluster_results(
     else:
         composition_key = None
 
-    adata.uns[results_key] = {
+    common_payload: Dict[str, Any] = {
+        "mode": mode,
         "params": params,
         "cell_type_categories": categories,
         "composition_key": composition_key,
-        "n_clusters": kmeans_results["n_clusters"],
-        "silhouette_scores": kmeans_results["silhouette_scores"],
-        "inertia": kmeans_results["inertia"],
-        "best_n_clusters": kmeans_results["best_n_clusters"],
-        "best_silhouette_score": kmeans_results["best_silhouette_score"],
-        "selection_method": kmeans_results["selection_method"],
-        "force_n_clusters": kmeans_results["force_n_clusters"],
-        "silhouette_best_n_clusters": kmeans_results["silhouette_best_n_clusters"],
-        "labels_by_n_clusters": kmeans_results["labels_by_n_clusters"],
         "cluster_cell_type_composition": cluster_cell_type_composition(
             composition=composition,
             best_labels=best_labels,
             categories=categories,
         ),
     }
+    if mode == "kmeans":
+        common_payload.update(
+            {
+                "n_clusters": cluster_results["n_clusters"],
+                "silhouette_scores": cluster_results["silhouette_scores"],
+                "inertia": cluster_results["inertia"],
+                "best_n_clusters": cluster_results["best_n_clusters"],
+                "best_silhouette_score": cluster_results["best_silhouette_score"],
+                "selection_method": cluster_results["selection_method"],
+                "force_n_clusters": cluster_results["force_n_clusters"],
+                "silhouette_best_n_clusters": cluster_results["silhouette_best_n_clusters"],
+                "labels_by_n_clusters": cluster_results["labels_by_n_clusters"],
+            }
+        )
+    else:
+        common_payload.update(
+            {
+                "labels": cluster_results["labels"],
+                "n_clusters_found": cluster_results["n_clusters_found"],
+                "n_noise": cluster_results["n_noise"],
+                "noise_fraction": cluster_results["noise_fraction"],
+                "silhouette_score": cluster_results["silhouette_score"],
+            }
+        )
+
+    adata.uns[results_key] = common_payload
     return adata

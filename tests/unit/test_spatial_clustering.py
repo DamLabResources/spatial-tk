@@ -103,3 +103,43 @@ def test_run_spatial_kmeans_force_n_clusters_overrides_selection():
     assert out["selection_method"] == "forced"
     assert out["silhouette_best_n_clusters"] in [2, 3, 4, 5, 6, 7, 8]
 
+
+def test_run_spatial_hdbscan_returns_labels_and_noise_counts():
+    from spatial_tk.core import spatial_clustering
+
+    rng = np.random.default_rng(21)
+    cluster1 = rng.normal(loc=0.0, scale=0.2, size=(30, 5))
+    cluster2 = rng.normal(loc=3.0, scale=0.2, size=(30, 5))
+    composition = np.vstack([cluster1, cluster2])
+
+    out = spatial_clustering.run_spatial_hdbscan(
+        composition=composition,
+        min_cluster_size=5,
+        min_samples=2,
+        cluster_selection_epsilon=0.0,
+        metric="euclidean",
+        allow_single_cluster=False,
+    )
+    assert out["mode"] == "hdbscan"
+    assert len(out["labels"]) == composition.shape[0]
+    assert out["n_clusters_found"] >= 1
+    assert out["n_noise"] >= 0
+    assert 0.0 <= out["noise_fraction"] <= 1.0
+
+
+def test_run_spatial_hdbscan_silhouette_can_be_none():
+    from spatial_tk.core import spatial_clustering
+
+    # Constant vectors tend to yield one cluster or all noise.
+    composition = np.zeros((20, 4), dtype=float)
+    out = spatial_clustering.run_spatial_hdbscan(
+        composition=composition,
+        min_cluster_size=5,
+        min_samples=None,
+        cluster_selection_epsilon=0.0,
+        metric="euclidean",
+        allow_single_cluster=True,
+    )
+    assert "silhouette_score" in out
+    assert out["silhouette_score"] is None or isinstance(out["silhouette_score"], float)
+

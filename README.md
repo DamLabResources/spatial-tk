@@ -244,6 +244,11 @@ spatial-tk spatial_cluster --input data.zarr --inplace \
 # Force final cluster count while still saving full K sweep
 spatial-tk spatial_cluster --input data.zarr --inplace \
   --cell-type-key cell_type_res0p5 --force-n-clusters 12
+
+# Use HDBSCAN mode instead of k-means
+spatial-tk spatial_cluster --input data.zarr --inplace \
+  --cell-type-key cell_type_res0p5 --mode hdbscan \
+  --hdbscan-min-cluster-size 8 --hdbscan-min-samples 4
 ```
 
 **Arguments:**
@@ -258,10 +263,16 @@ spatial-tk spatial_cluster --input data.zarr --inplace \
 - `--library-key`: Optional obs library key for on-demand neighbors
 - `--output-key`: Output obs column for selected labels (default: `spatial_cluster`)
 - `--results-key`: `adata.uns` key for detailed outputs (default: `spatial_cluster`)
+- `--mode`: Clustering mode: `kmeans` (default) or `hdbscan`
 - `--min-clusters`: Minimum cluster count to test (default: 2)
 - `--max-clusters`: Maximum cluster count to test (default: 20)
-- `--force-n-clusters`: Force final selected cluster count
+- `--force-n-clusters`: Force final selected cluster count (k-means mode only)
 - `--random-state`: Random seed for reproducibility (default: 0)
+- `--hdbscan-min-cluster-size`: HDBSCAN minimum cluster size
+- `--hdbscan-min-samples`: HDBSCAN `min_samples`
+- `--hdbscan-cluster-selection-epsilon`: HDBSCAN cluster selection epsilon
+- `--hdbscan-metric`: HDBSCAN distance metric
+- `--hdbscan-allow-single-cluster`: Allow one-cluster HDBSCAN solution
 - `--include-self`/`--exclude-self`: Include/exclude focal cell in neighborhood window
 - `--normalize-composition`/`--raw-composition`: Store proportions or raw counts
 - `--config`: Path to TOML configuration file (optional)

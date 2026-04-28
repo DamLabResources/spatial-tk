@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Spatial neighborhood clustering subcommand**:
   - Added `spatial-tk spatial_cluster` to cluster neighborhood cell-type composition vectors derived from spatial connectivities.
   - Added support for configurable graph key, `cell_type_key`, output/result keys, k-means sweep bounds, and `--force-n-clusters`.
+  - Added `--mode` with `kmeans` and `hdbscan` options for alternative clustering backends.
+  - Added HDBSCAN options (`hdbscan_min_cluster_size`, `hdbscan_min_samples`, `hdbscan_cluster_selection_epsilon`, `hdbscan_metric`, `hdbscan_allow_single_cluster`) and mode-specific result fields in `uns`.
   - Added new core module `spatial_tk/core/spatial_clustering.py` for composition construction, k-means sweep, silhouette/inertia scoring, and uns result schema.
 
 ### Changed

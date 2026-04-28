@@ -68,6 +68,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help="uns key for detailed spatial clustering outputs",
     )
     parser.add_argument(
+        "--mode",
+        choices=["kmeans", "hdbscan"],
+        default="kmeans",
+        help="Clustering mode: kmeans (default) or hdbscan",
+    )
+    parser.add_argument(
         "--min-clusters",
         type=int,
         default=2,
@@ -90,6 +96,35 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         type=int,
         default=0,
         help="Random seed for k-means reproducibility (default: 0)",
+    )
+    parser.add_argument(
+        "--hdbscan-min-cluster-size",
+        type=int,
+        default=5,
+        help="Minimum cluster size for HDBSCAN mode (default: 5)",
+    )
+    parser.add_argument(
+        "--hdbscan-min-samples",
+        type=int,
+        default=None,
+        help="min_samples for HDBSCAN mode (default: None)",
+    )
+    parser.add_argument(
+        "--hdbscan-cluster-selection-epsilon",
+        type=float,
+        default=0.0,
+        help="cluster_selection_epsilon for HDBSCAN mode (default: 0.0)",
+    )
+    parser.add_argument(
+        "--hdbscan-metric",
+        default="euclidean",
+        help="Distance metric for HDBSCAN mode (default: euclidean)",
+    )
+    parser.add_argument(
+        "--hdbscan-allow-single-cluster",
+        action="store_true",
+        default=False,
+        help="Allow single-cluster result in HDBSCAN mode",
     )
     parser.add_argument(
         "--include-self",
@@ -137,6 +172,9 @@ def main(args: argparse.Namespace) -> None:
         sys.exit(1)
     if not args.cell_type_key:
         logging.error("--cell-type-key is required")
+        sys.exit(1)
+    if args.mode != "kmeans" and args.force_n_clusters is not None:
+        logging.error("--force-n-clusters is only supported when --mode kmeans")
         sys.exit(1)
 
     input_path = Path(args.input)
@@ -192,15 +230,26 @@ def main(args: argparse.Namespace) -> None:
         composition = composition_result["composition"]
         categories = composition_result["cell_type_categories"]
 
-        kmeans_result = spatial_clustering.run_spatial_kmeans(
-            composition=composition,
-            min_clusters=args.min_clusters,
-            max_clusters=args.max_clusters,
-            random_state=args.random_state,
-            force_n_clusters=args.force_n_clusters,
-        )
+        if args.mode == "kmeans":
+            cluster_result = spatial_clustering.run_spatial_kmeans(
+                composition=composition,
+                min_clusters=args.min_clusters,
+                max_clusters=args.max_clusters,
+                random_state=args.random_state,
+                force_n_clusters=args.force_n_clusters,
+            )
+        else:
+            cluster_result = spatial_clustering.run_spatial_hdbscan(
+                composition=composition,
+                min_cluster_size=args.hdbscan_min_cluster_size,
+                min_samples=args.hdbscan_min_samples,
+                cluster_selection_epsilon=args.hdbscan_cluster_selection_epsilon,
+                metric=args.hdbscan_metric,
+                allow_single_cluster=args.hdbscan_allow_single_cluster,
+            )
 
         params = {
+            "mode": args.mode,
             "connectivities_key": args.connectivities_key,
             "cell_type_key": args.cell_type_key,
             "include_self": args.include_self,
@@ -209,6 +258,11 @@ def main(args: argparse.Namespace) -> None:
             "min_clusters": args.min_clusters,
             "max_clusters": args.max_clusters,
             "force_n_clusters": args.force_n_clusters,
+            "hdbscan_min_cluster_size": args.hdbscan_min_cluster_size,
+            "hdbscan_min_samples": args.hdbscan_min_samples,
+            "hdbscan_cluster_selection_epsilon": args.hdbscan_cluster_selection_epsilon,
+            "hdbscan_metric": args.hdbscan_metric,
+            "hdbscan_allow_single_cluster": args.hdbscan_allow_single_cluster,
         }
         adata = spatial_clustering.store_spatial_cluster_results(
             adata=adata,
@@ -217,7 +271,7 @@ def main(args: argparse.Namespace) -> None:
             params=params,
             composition=composition,
             categories=categories,
-            kmeans_results=kmeans_result,
+            cluster_results=cluster_result,
             store_composition_in_obsm=True,
         )
 

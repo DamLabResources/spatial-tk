@@ -92,6 +92,8 @@ library_key = null
 output_key = "spatial_cluster"
 # uns key for detailed results
 results_key = "spatial_cluster"
+# Clustering mode: "kmeans" or "hdbscan"
+mode = "kmeans"
 # K-means sweep bounds
 min_clusters = 2
 max_clusters = 20
@@ -99,6 +101,12 @@ max_clusters = 20
 force_n_clusters = null
 # Random seed for reproducibility
 random_state = 0
+# HDBSCAN parameters (used when mode = "hdbscan")
+hdbscan_min_cluster_size = 5
+hdbscan_min_samples = null
+hdbscan_cluster_selection_epsilon = 0.0
+hdbscan_metric = "euclidean"
+hdbscan_allow_single_cluster = false
 # Include each focal cell in its own neighborhood vector
 include_self = true
 # Normalize neighborhood vectors to cell-type proportions
