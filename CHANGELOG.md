@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Spatial neighbors subcommand**:
+  - Added `spatial-tk spatial_neighbors` to build Squidpy spatial graphs from existing `.zarr` datasets.
+  - Added support for CLI/config options including `spatial_key`, `table_key`, `library_key`, `library_id`, `n_neighs`, `radius`, `transform`, and `key_added`.
+  - Added new core module `spatial_tk/core/spatial_neighbors.py` with radius parsing and Squidpy wrapper logic.
+  - Added functional test `tests/functional/test_spatial_neighbors_command.py` to verify that spatial graph matrices persist in `obsp` after save/reload.
+
+### Changed
+- **CLI and docs**:
+  - Registered `spatial_neighbors` in `spatial_tk/cli.py`.
+  - Added `[spatial_neighbors]` section to `example_config.toml`.
+  - Updated `README.md` with command usage and examples.
+- **Table selection utilities**:
+  - Updated `get_table()` and `set_table()` in `spatial_tk/utils/helpers.py` to support optional `table_key` selection.
+- **End-to-end pipeline test**:
+  - Extended `tests/functional/test_full_pipeline.py` to include `spatial_neighbors` as step 7 in the full pipeline flow.
+
 ### Changed (breaking)
 
 - Renamed the Python package from `xenium_process` to `spatial_tk`, the distribution/PyPI name from `xenium-process` to `spatial-tk`, and the CLI entry point from `xenium_process` to `spatial-tk`. Run `pip install spatial-tk` (or install from source) and invoke `spatial-tk ...` or `python -m spatial_tk.cli ...`.

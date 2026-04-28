@@ -13,7 +13,15 @@ import warnings
 # Suppress warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-from spatial_tk.commands import concat, normalize, cluster, quantitate, assign, differential
+from spatial_tk.commands import (
+    concat,
+    normalize,
+    cluster,
+    quantitate,
+    spatial_neighbors,
+    assign,
+    differential,
+)
 from spatial_tk.utils.helpers import setup_logging
 
 
@@ -50,6 +58,10 @@ Examples:
   # Assign cell type labels to clusters from the computed scores
   spatial-tk assign --input clustered.zarr --inplace \\
       --score-key score_mlm_custom
+
+  # Build a Squidpy spatial neighbors graph
+  spatial-tk spatial_neighbors --input clustered.zarr --inplace \\
+      --spatial-key spatial --n-neighs 8 --transform cosine
 
   # Differential analysis between groups
   spatial-tk differential --input annotated.zarr --output-dir results/ \\
@@ -113,6 +125,18 @@ Examples:
     )
     quantitate.add_arguments(quantitate_parser)
     quantitate_parser.set_defaults(func=quantitate.main)
+
+    # Add spatial_neighbors subcommand
+    spatial_neighbors_parser = subparsers.add_parser(
+        'spatial_neighbors',
+        help='Compute spatial neighbor graph with Squidpy',
+        description=(
+            'Build spatial connectivities/distances with squidpy.gr.spatial_neighbors '
+            'using configurable spatial key, neighbor definition, and transform.'
+        ),
+    )
+    spatial_neighbors.add_arguments(spatial_neighbors_parser)
+    spatial_neighbors_parser.set_defaults(func=spatial_neighbors.main)
 
     # Add assign subcommand
     assign_parser = subparsers.add_parser(

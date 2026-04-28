@@ -44,6 +44,32 @@ leiden_resolution = "0.2,0.5,1.0"
 # Generate and save UMAP plots
 save_plots = true
 
+[spatial_neighbors]
+# Path to input .zarr file
+input = "clustered.zarr"
+# Modify the input file in place instead of creating a new file
+inplace = false
+# Path to output .zarr file (required unless inplace = true)
+output = "neighbors.zarr"
+# Optional table key from SpatialData.tables (null = first table)
+table_key = null
+# obsm key containing spatial coordinates
+spatial_key = "spatial"
+# Optional obs column containing per-cell library ids
+library_key = null
+# Optional single-library identifier convenience value
+library_id = null
+# Coordinate type: "grid", "generic", or null to let Squidpy infer
+coord_type = null
+# Number of neighbors for generic coordinates
+n_neighs = 6
+# Radius threshold as scalar or "min,max" string; null disables radius filtering
+radius = null
+# Transform adjacency matrix: "spectral", "cosine", or null
+transform = null
+# Prefix for output graph keys in obsp/uns
+key_added = "spatial"
+
 [quantitate]
 # Path to input clustered .zarr file
 input = "clustered.zarr"

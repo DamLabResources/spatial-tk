@@ -23,7 +23,7 @@ def setup_logging(level: int = logging.INFO):
     )
 
 
-def get_table(sdata: sd.SpatialData) -> Optional[ad.AnnData]:
+def get_table(sdata: sd.SpatialData, table_key: Optional[str] = None) -> Optional[ad.AnnData]:
     """
     Get AnnData table from SpatialData object.
     
@@ -36,13 +36,15 @@ def get_table(sdata: sd.SpatialData) -> Optional[ad.AnnData]:
         AnnData table or None if not found
     """
     if hasattr(sdata, 'tables') and len(sdata.tables) > 0:
+        if table_key:
+            return sdata.tables.get(table_key)
         return list(sdata.tables.values())[0]
     elif hasattr(sdata, 'table'):
         return sdata.table
     return None
 
 
-def set_table(sdata: sd.SpatialData, adata: ad.AnnData) -> None:
+def set_table(sdata: sd.SpatialData, adata: ad.AnnData, table_key: Optional[str] = None) -> None:
     """
     Set AnnData table in SpatialData object.
     
@@ -54,7 +56,9 @@ def set_table(sdata: sd.SpatialData, adata: ad.AnnData) -> None:
     """
     if hasattr(sdata, 'tables') and len(sdata.tables) > 0:
         # Get the table name
-        table_name = list(sdata.tables.keys())[0]
+        table_name = table_key or list(sdata.tables.keys())[0]
+        if table_key and table_name not in sdata.tables:
+            raise KeyError(f"Table key not found in SpatialData.tables: {table_key}")
         sdata.tables[table_name] = adata
     else:
         sdata.table = adata

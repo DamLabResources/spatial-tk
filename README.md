@@ -203,6 +203,35 @@ spatial-tk cluster --input data.zarr --inplace \
 - `--save-plots`: Generate UMAP plots
 - `--config`: Path to TOML configuration file (optional)
 
+### `spatial-tk spatial_neighbors`
+
+Build a spatial graph on coordinates using Squidpy.
+
+```bash
+# kNN graph on obsm['spatial']
+spatial-tk spatial_neighbors --input data.zarr --inplace \
+  --spatial-key spatial --n-neighs 8
+
+# Radius-based graph with cosine transform, writing to new file
+spatial-tk spatial_neighbors --input data.zarr --output neighbors.zarr \
+  --coord-type generic --radius 50,200 --transform cosine
+```
+
+**Arguments:**
+- `--input`: Input .zarr file
+- `--output`: Output .zarr file (mutually exclusive with --inplace)
+- `--inplace`: Modify input file in place
+- `--table-key`: Optional table key in `SpatialData.tables`
+- `--spatial-key`: Coordinate key in `adata.obsm` (default: `spatial`)
+- `--library-key`: Optional obs column containing library ids
+- `--library-id`: Optional single-library convenience value
+- `--coord-type`: `grid` or `generic` (default: inferred by Squidpy)
+- `--n-neighs`: Number of neighbors (default: 6)
+- `--radius`: Scalar radius or `min,max` interval
+- `--transform`: `spectral`, `cosine`, or `none`
+- `--key-added`: Output prefix in `adata.obsp`/`adata.uns` (default: `spatial`)
+- `--config`: Path to TOML configuration file (optional)
+
 ### `spatial-tk annotate`
 
 Annotate cell types using marker genes and/or MLM scoring.
